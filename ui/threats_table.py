@@ -2,7 +2,7 @@ from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QTableWidget, QTableWidgetItem,
     QPushButton, QHBoxLayout, QMessageBox, QProgressBar, QWidget
 )
-from PySide6.QtCore import Qt, QThread, Signal, QObject
+from PySide6.QtCore import Qt, QThread, Signal
 
 
 class VirusScanWorker(QThread):
@@ -21,7 +21,11 @@ class VirusScanWorker(QThread):
             try:
                 plugin.scan()
             except Exception as e:
-                self.logapi.logger.log("MiniScanner", f"Ошибка плагина {plugin.__class__.__name__}: {e}", self.logapi.LOGTYPE.ERROR)
+                self.logapi.logger.log(
+                    "MiniScanner",
+                    f"Ошибка плагина {plugin.__class__.__name__}: {e}",
+                    self.logapi.LOGTYPE.ERROR
+                )
             self.progress_update.emit(int((index + 1) / total * 100))
 
 
@@ -33,8 +37,8 @@ class VirusScanWindow(QDialog):
 
         self.api = api
 
-        self.setWindowTitle("MiniScanner | Проверка на вирусы")
-        self.resize(640, 420)
+        self.setWindowTitle("Проверка на вирусы")
+        self.resize(700, 420)
 
         self.plugins = plugins
         self.threat_plugin_map = []
@@ -44,8 +48,8 @@ class VirusScanWindow(QDialog):
         self.progress = QProgressBar()
         layout.addWidget(self.progress)
 
-        self.table = QTableWidget(0, 3)
-        self.table.setHorizontalHeaderLabels(["Файл", "Угроза", "Действие"])
+        self.table = QTableWidget(0, 4)
+        self.table.setHorizontalHeaderLabels(["Файл", "Угроза", "Плагин", "Действие"])
         self.table.horizontalHeader().setStretchLastSection(True)
         layout.addWidget(self.table)
 
@@ -64,6 +68,10 @@ class VirusScanWindow(QDialog):
 
         self.table.setItem(row, 0, QTableWidgetItem(filename))
         self.table.setItem(row, 1, QTableWidgetItem(threat_name))
+
+        plugin_name = getattr(plugin, "name", "Unknown")
+        self.table.setItem(row, 2, QTableWidgetItem(plugin_name))
+
         self.threat_plugin_map.append((filename, threat_name, plugin))
 
         delete_button = QPushButton("Удалить")
@@ -97,7 +105,7 @@ class VirusScanWindow(QDialog):
         btn_widget = QWidget()
         btn_widget.setLayout(btn_layout)
 
-        self.table.setCellWidget(row, 2, btn_widget)
+        self.table.setCellWidget(row, 3, btn_widget)
 
         delete_button.clicked.connect(delete_action)
         ignore_button.clicked.connect(ignore_action)

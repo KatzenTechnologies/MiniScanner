@@ -1,12 +1,11 @@
 from PySide6.QtWidgets import QApplication, QDialog
+import utils.configuration as config_tools
 from datetime import datetime
+import ui.license as license
 import katzo.color as color
 import katzo.tui as tui
 import importlib
-import colorama
 import logging
-import shutil
-import winreg
 import sys
 import os
 
@@ -23,6 +22,9 @@ print("MiniScanner v1.0")
 if not os.path.exists("./logs") or os.path.isfile("./logs"):
     os.mkdir("./logs")
 
+if not os.path.exists("./config") or os.path.isfile("./config"):
+    os.mkdir("./config")
+
 class Logger:
     def __init__(self):
         now = datetime.now()
@@ -34,6 +36,23 @@ class Logger:
         logging.info(f"[{name}/{log_type[1]}] {message}")
 
 globals()["logger"] = Logger()
+
+logger.log("MiniScanner", "Загружаю свой конфиг...", LogType.INFO)
+
+myconfig = config_tools.Configuration("./config/MiniScanner.json")
+if myconfig.data == None:
+    myconfig.data = {"agreed_with_disclaimer": False}
+    logger.log("MiniScanner", "Создан новый конфиг, так как старый не существует/повреждён!", LogType.SUCCESS)
+
+if not myconfig["agreed_with_disclaimer"]:
+    agreed = license.show_agreement_dialog()
+    if not agreed:
+        logger.log("MiniScanner", "Соглашение не было принято, завершаю работу...", LogType.CRITICAL)
+        exit()
+    myconfig["agreed_with_disclaimer"] = agreed
+    myconfig.save()
+
+
 
 def loader(path, paths):
     sys.path.insert(0, path)
@@ -88,17 +107,27 @@ modules = loader("./plugins", get_plugins(app))
 # API Toolkit
 import utils.installed_apps as installed_apps
 import utils.lnk_tools as lnk_tools
-
+import utils.paths as paths
+import utils.autorun_utils as autorun_utils
 
 class API:
     version = "1.0"
     LOGTYPE = LogType()
     APIs = {}
     logger = logger
+    ConfigType = config_tools.ConfigurationTypes
 
     # Libraries
     installed_apps = installed_apps
     lnk_tools = lnk_tools
+    paths = paths
+    autorun_utils = autorun_utils
+
+    def get_config_object(self, plugin_object, name_of_file, type_of_config=ConfigType.JSON):
+        if not os.path.exists(f"./config/{plugin_object.name}") or os.path.isfile(f"./config/{plugin_object.name}"):
+            os.mkdir(f"./config/{plugin_object.name}")
+
+        return config_tools.Configuration(f"./config/{plugin_object.name}/{name_of_file}", type_of_config=type_of_config)
 
     # CAPIs System
     def get_api(self, name):
@@ -110,11 +139,19 @@ class API:
         else:
             logger.log("API System", "Имя кастомного API уже зарегистрировано, перезапись не разрешается", LogType.WARN)
 
+if modules == []:
+    logger.log("MiniScanner", "Я не получил ни одного плагина:(", LogType.CRITICAL)
+    exit()
+
 api = API()
 
 dlg = PluginLoaderDialog(modules, api)
 if dlg.exec() == QDialog.Accepted:
     loaded_plugins = dlg.get_result()
+
+if loaded_plugins == []:
+    logger.log("MiniScanner", "Я не загрузил ни одного плагина:(", LogType.CRITICAL)
+    exit()
 
 threat_gui = VirusScanWindow(loaded_plugins, api)
 api.add_threat = threat_gui.add_threat
