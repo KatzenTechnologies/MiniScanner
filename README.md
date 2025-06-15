@@ -1,24 +1,55 @@
-# MiniScanner
-Антивирусный сканер, основанный на системе плагинов. Плагины взаимодействуют с системой и основой программы через специальный API. Также плагины могут реализовывать свои API для взаимодействия с системой.
-# Текущие версии различных составляющих:
-## Base: v1.1.0
-**Основные компоненты MiniScanner, исключая API**
-## API: v1.1.0
-**API для взаимодействия с системой**
-### LNK Tools: v1.0.0
-**Взаимодействие с ярлыками, к примеру для их анализа**
-### ProgramList: v1.0.0
-**Получение списка установленных приложений**
-### Autorun Utils: v1.0.0
-**Получение информации об автозапуске**
-### Paths: v1.0.1
-**Обычные пути системы**
-# DISCLAIMER
-Данное программное обеспечение и все его компоненты, включая плагины и инструменты, предоставляются «как есть» без каких-либо гарантий, явных или подразумеваемых, включая, но не ограничиваясь, гарантии товарной пригодности, пригодности для определённой цели и отсутствия нарушений прав.
+# **MiniScanner**  
+*An antivirus scanner based on a plugin system.*  
+Plugins interact with the system and the core of the program through a dedicated **API**.  
+Plugins can also implement their own **APIs** for system interaction.
 
-Автор программы не несёт ответственности за правильную работу и последствия использования любых плагинов, включая как разработанные автором программы, так и сторонними разработчиками. Любое использование плагинов и инструментов разработки осуществляется исключительно на риск пользователя.
+📄 [Read in Russian](README_ru.md)
 
-Внимание!
-Использование данной утилиты и её компонентов может повлечь за собой серьёзные риски, включая повреждение операционной системы, потерю данных, сбои в работе оборудования и иные нежелательные последствия. Пользователь обязуется самостоятельно оценить все риски и принять необходимые меры предосторожности, включая создание резервных копий важных данных.
+---
 
-Используя это программное обеспечение, вы подтверждаете, что полностью понимаете и принимаете все возможные риски, связанные с его использованием, и освобождаете автора от какой-либо ответственности за прямой или косвенный ущерб, возникший в результате использования или невозможности использования данного программного обеспечения, включая ущерб, вызванный работой плагинов сторонних разработчиков.
+## **Current Versions of Various Components**
+
+### **Base: v1.1.0**  
+**Core components of MiniScanner, excluding the API**
+
+### **API: v1.1.0**  
+**API for interaction with the system**
+
+#### **LNK Tools: v1.0.0**  
+*Interaction with shortcut files (e.g., for analysis)*
+
+#### **ProgramList: v1.0.0**  
+*Retrieving a list of installed applications*
+
+#### **Autorun Utils: v1.0.0**  
+*Getting autorun-related information*
+
+#### **Paths: v1.0.1**  
+*Common system paths*
+
+---
+
+# ⚠ **DISCLAIMER**
+
+> This software and all of its components, including plugins and tools, are provided **"as is"** without any warranties, either express or implied, including, but not limited to, warranties of merchantability, fitness for a particular purpose, or non-infringement.
+
+The author of the software **is not responsible** for the performance or consequences of using any plugins, whether developed by the author or by third-party developers.  
+**The use of plugins and development tools is entirely at the user's own risk.**
+
+---
+
+## ❗ **Warning!**
+
+The use of this utility and its components may carry **serious risks**, including:
+
+- damage to the operating system,  
+- data loss,  
+- hardware failures,  
+- and other unwanted consequences.
+
+The user agrees to **independently assess all risks** and take necessary precautions, including creating **backups** of important data.
+
+---
+
+> By using this software, you confirm that you fully **understand and accept all potential risks** associated with its use,  
+> and **release the author from any liability** for direct or indirect damages resulting from the use or inability to use this software, including damages caused by **third-party plugins**.
