@@ -20,23 +20,26 @@ class LoaderThread(QThread):
         total = len(self.modules)
         for i, module in enumerate(self.modules, 1):
             try:
-                self.log.emit(f"Загрузка: {module.__name__}")
+                self.log.emit(self.api.chosen_language.translate("load_loading_plugin", plugin_name=module.__name__))
                 instance = module.Main(self.api)
                 self.loaded_instances.append(instance)
                 time.sleep(0.3)
             except Exception as e:
-                self.log.emit(f"Ошибка: {e}")
+                self.log.emit(self.api.chosen_language.translate("load_loading_error", error=e))
             self.progress.emit(int(i / total * 100))
         self.done.emit()
 
 class PluginLoaderDialog(QDialog):
     def __init__(self, modules, api):
         super().__init__()
-        self.setWindowTitle("MiniScanner | Загрузка плагинов")
+
+        self.api = api
+
+        self.setWindowTitle("MiniScanner | " + self.api.chosen_language.translate("load_title"))
         self.resize(400, 150)
         self.result_plugins = []
 
-        self.label = QLabel("Готов к загрузке...")
+        self.label = QLabel(self.api.chosen_language.translate("load_ready"))
         self.progress = QProgressBar()
         self.buttons = QDialogButtonBox(QDialogButtonBox.Ok)
         self.buttons.button(QDialogButtonBox.Ok).setEnabled(False)
@@ -56,7 +59,7 @@ class PluginLoaderDialog(QDialog):
         self.thread.start()
 
     def loading_done(self):
-        self.label.setText("Загрузка завершена.")
+        self.label.setText(self.api.chosen_language.translate("load_loaded"))
         self.result_plugins = self.thread.loaded_instances
         self.buttons.button(QDialogButtonBox.Ok).setEnabled(True)
 

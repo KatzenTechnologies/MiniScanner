@@ -23,7 +23,7 @@ class VirusScanWorker(QThread):
             except Exception as e:
                 self.logapi.logger.log(
                     "MiniScanner",
-                    f"Ошибка плагина {plugin.__class__.__name__}: {e}",
+                    self.api.chosen_language.translate("threats_table_error_of_plugin", plugin_name=plugin.name, error=e),
                     self.logapi.LOGTYPE.ERROR
                 )
             self.progress_update.emit(int((index + 1) / total * 100))
@@ -37,7 +37,7 @@ class VirusScanWindow(QDialog):
 
         self.api = api
 
-        self.setWindowTitle("Проверка на вирусы")
+        self.setWindowTitle("MiniScanner | " + api.chosen_language.translate("threats_table_title"))
         self.resize(700, 420)
 
         self.plugins = plugins
@@ -49,7 +49,10 @@ class VirusScanWindow(QDialog):
         layout.addWidget(self.progress)
 
         self.table = QTableWidget(0, 4)
-        self.table.setHorizontalHeaderLabels(["Файл", "Угроза", "Плагин", "Действие"])
+        self.table.setHorizontalHeaderLabels([api.chosen_language.translate("threats_table_file"),
+                                              api.chosen_language.translate("threats_table_threat"),
+                                              api.chosen_language.translate("threats_table_plugin"),
+                                              api.chosen_language.translate("threats_table_action")])
         self.table.horizontalHeader().setStretchLastSection(True)
         layout.addWidget(self.table)
 
@@ -69,13 +72,13 @@ class VirusScanWindow(QDialog):
         self.table.setItem(row, 0, QTableWidgetItem(filename))
         self.table.setItem(row, 1, QTableWidgetItem(threat_name))
 
-        plugin_name = getattr(plugin, "name", "Unknown")
+        plugin_name = getattr(plugin, "name", self.api.chosen_language.translate("threats_table_unknown_plugin"))
         self.table.setItem(row, 2, QTableWidgetItem(plugin_name))
 
         self.threat_plugin_map.append((filename, threat_name, plugin))
 
-        delete_button = QPushButton("Удалить")
-        ignore_button = QPushButton("Игнорировать")
+        delete_button = QPushButton(self.api.chosen_language.translate("threats_table_remove"))
+        ignore_button = QPushButton(self.api.chosen_language.translate("threats_table_ignore"))
 
         button_height = 18
         delete_button.setMinimumHeight(button_height)
@@ -84,15 +87,19 @@ class VirusScanWindow(QDialog):
         def delete_action():
             confirm = QMessageBox.question(
                 self,
-                "Подтверждение",
-                f"Удалить файл {filename}?",
+                self.api.chosen_language.translate("threats_table_confirmation"),
+                self.api.chosen_language.translate("threats_table_remove_file", filename=filename),
                 QMessageBox.Yes | QMessageBox.No
             )
             if confirm == QMessageBox.Yes:
                 try:
                     plugin.delete(filename)
                 except Exception as e:
-                    QMessageBox.critical(self, "Ошибка", f"Ошибка удаления: {e}")
+                    self.api.logger.log("MiniScanner",
+                                        self.api.chosen_language.translate("threats_table_error_of_remove", error=e),
+                                        self.api.LOGTYPE.ERROR)
+                    QMessageBox.critical(self, self.api.chosen_language.translate("threats_table_error"),
+                                         self.api.chosen_language.translate("threats_table_error_of_remove", error=e))
                     return
                 self.remove_row(row)
 

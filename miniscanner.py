@@ -1,4 +1,6 @@
 from PySide6.QtWidgets import QApplication, QDialog
+import ui.choose_language as choose_language
+from utils.localization import Localization
 import utils.configuration as config_tools
 from datetime import datetime
 import ui.license as license
@@ -6,6 +8,7 @@ import katzo.color as color
 import katzo.tui as tui
 import importlib
 import logging
+import json
 import sys
 import os
 
@@ -35,19 +38,39 @@ class Logger:
         print(tui.colorize_onecolor(f"[{name}/{log_type[1]}] {message}", log_type[0]))
         logging.info(f"[{name}/{log_type[1]}] {message}")
 
+myconfig = config_tools.Configuration("./config/MiniScanner.json")
+
 globals()["logger"] = Logger()
 
-logger.log("MiniScanner", "Загружаю свой конфиг...", LogType.INFO)
-
-myconfig = config_tools.Configuration("./config/MiniScanner.json")
 if myconfig.data == None:
-    myconfig.data = {"agreed_with_disclaimer": False}
-    logger.log("MiniScanner", "Создан новый конфиг, так как старый не существует/повреждён!", LogType.SUCCESS)
+    myconfig.data = {"agreed_with_disclaimer": False, "last_language": "", "skip_lang": False}
+
+if myconfig["skip_lang"]:
+    chosen_language = Localization(json.load(open(f"./translations/{myconfig["last_language"]}", "r")))
+else:
+    localizations_map = {}
+    localization_data_for_ui = []
+
+    for i in os.listdir("./translations"):
+        obj = Localization(json.load(open(f"./translations/{i}", "r")))
+        localizations_map.update({i: obj})
+        localization_data_for_ui.append([i, obj.language_name])
+
+    language, skip = choose_language.select_language(localization_data_for_ui, default_key=myconfig["last_language"])
+
+    myconfig["last_language"] = language
+    myconfig["skip_lang"] = skip
+
+    myconfig.save()
+
+    chosen_language = localizations_map[language]
+
+
 
 if not myconfig["agreed_with_disclaimer"]:
-    agreed = license.show_agreement_dialog()
+    agreed = license.show_agreement_dialog(chosen_language)
     if not agreed:
-        logger.log("MiniScanner", "Соглашение не было принято, завершаю работу...", LogType.CRITICAL)
+        logger.log("MiniScanner", chosen_language.translate("disclaimer_not_accepted"), LogType.CRITICAL)
         exit()
     myconfig["agreed_with_disclaimer"] = agreed
     myconfig.save()
@@ -71,9 +94,9 @@ def loader(path, paths):
                 if hasattr(module, 'Main'):
                     modules.append(module)
                 else:
-                    logger.log("MiniScanner", f"В плагине {filename} отсутствует класс Main!", LogType.ERROR)
+                    logger.log("MiniScanner", chosen_language.translate("plugin_class_main_not_found", plugin_name=filename), LogType.ERROR)
             except Exception as e:
-                logger.log("MiniScanner", f"Не удалось импортировать {filename}! Ошибка: {e}", LogType.ERROR)
+                logger.log("MiniScanner", chosen_language.translate("plugin_loading_error", plugin_name=filename, error=e), LogType.ERROR)
                 
     return modules
 # GUI
@@ -81,18 +104,19 @@ from ui.plugins_select import PluginSelectorDialog
 from ui.load import *
 from ui.threats_table import *
 def get_plugins(app):
-    dlg = PluginSelectorDialog()
+    dlg = PluginSelectorDialog(chosen_language)
     
-    logger.log("MiniScanner", "Начинаю поиск плагинов", LogType.INFO)
+    logger.log("MiniScanner", chosen_language.translate("start_searching_of_plugins"), LogType.INFO)
     for i in os.listdir("./plugins"):
+        if os.path.isdir("./plugins/" + i): continue
         if i.split(".")[-1] == "py":
             suspicious = False
-            logger.log("MiniScanner", f"Найден плагин {i}, запускаю проверку...", LogType.INFO)
+            logger.log("MiniScanner", chosen_language.translate("found_plugin_starting_check", plugin_name=i), LogType.INFO)
             dlg.add_plugin(i, suspicious=suspicious)
         elif i.split(".")[-1] == ".pyc":
-            logger.log("MiniScanner", f"Найден плагин {i}, плагины с расширением .pyc не поддерживаются ввиду невозможности их проверки, пропускаю!", LogType.WARN)
+            logger.log("MiniScanner", chosen_language.translate("pyc_skip", plugin_name=i), LogType.WARN)
         else:
-            logger.log("MiniScanner", f"Найден файл {i}, не Python-файл, пропускаю!", LogType.WARN)
+            logger.log("MiniScanner", chosen_language.translate("found_not_python_plugin", plugin_name=i), LogType.WARN)
         
             
 
@@ -116,6 +140,7 @@ class API:
     APIs = {}
     logger = logger
     ConfigType = config_tools.ConfigurationTypes
+    chosen_language = chosen_language # Нужно потому что в уи передается апи
 
     # Libraries
     installed_apps = installed_apps
@@ -137,10 +162,10 @@ class API:
         if self.APIs.get(name) is None:
             self.APIs.update({name: object})
         else:
-            logger.log("API System", "Имя кастомного API уже зарегистрировано, перезапись не разрешается", LogType.WARN)
+            logger.log("API System", chosen_language.translate("custom_api_already_registrated"), LogType.WARN)
 
 if modules == []:
-    logger.log("MiniScanner", "Я не получил ни одного плагина:(", LogType.CRITICAL)
+    logger.log("MiniScanner", chosen_language.translate("havent_get_any_plugins"), LogType.CRITICAL)
     exit()
 
 api = API()
@@ -150,7 +175,7 @@ if dlg.exec() == QDialog.Accepted:
     loaded_plugins = dlg.get_result()
 
 if loaded_plugins == []:
-    logger.log("MiniScanner", "Я не загрузил ни одного плагина:(", LogType.CRITICAL)
+    logger.log("MiniScanner", chosen_language.translate("havent_loaded_any_plugins"), LogType.CRITICAL)
     exit()
 
 threat_gui = VirusScanWindow(loaded_plugins, api)

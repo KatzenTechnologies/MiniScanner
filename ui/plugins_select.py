@@ -6,9 +6,13 @@ from PySide6.QtGui import QIcon
 from PySide6.QtCore import Qt
 
 class PluginSelectorDialog(QDialog):
-    def __init__(self):
+    def __init__(self, localizator):
         super().__init__()
-        self.setWindowTitle("MiniScanner | Выбор плагинов")
+
+        # v1.2.0
+        self.localizator = localizator
+
+        self.setWindowTitle("MiniScanner | " + localizator.translate("plugin_select_title"))
         self.setMinimumSize(400, 400)
         self.plugins = {}
 
@@ -16,15 +20,11 @@ class PluginSelectorDialog(QDialog):
         self.list_widget = QListWidget()
         layout.addWidget(self.list_widget)
 
-        warning_label = QLabel(
-            "⚠️ ВНИМАНИЕ: Плагины могут содержать вредоносный код.\n"
-            "Запускайте только те, которые получены из доверенных источников.\n"
-            "Если плагин не помечен как подозрительный, это не означает, что он безопасен."
-        )
+        warning_label = QLabel(localizator.translate("plugin_select_warning"))
         warning_label.setStyleSheet("color: red; font-weight: bold;")
         layout.addWidget(warning_label)
 
-        self.run_button = QPushButton("Запустить выбранные плагины")
+        self.run_button = QPushButton(localizator.translate("plugin_select_load_selected_plugins"))
         self.run_button.clicked.connect(self.on_run_clicked)
         layout.addWidget(self.run_button)
 
@@ -43,7 +43,8 @@ class PluginSelectorDialog(QDialog):
     def on_run_clicked(self):
         self.selected_plugins = self.get_selected_plugins()
         if not self.selected_plugins:
-            QMessageBox.information(self, "Нет выбора", "Выберите хотя бы один плагин.")
+            QMessageBox.information(self, self.localizator.translate("plugin_select_no_select_of_plugins"),
+                                    self.localizator.translate("plugin_select_select_at_least_one_plugin"))
             return
         self.accept()
 
