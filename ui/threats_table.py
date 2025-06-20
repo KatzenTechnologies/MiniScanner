@@ -17,13 +17,12 @@ class VirusScanWorker(QThread):
     def run(self):
         total = len(self.plugins)
         for index, plugin in enumerate(self.plugins):
-            plugin.api = self.api
             try:
                 plugin.scan()
             except Exception as e:
                 self.logapi.logger.log(
                     "MiniScanner",
-                    self.api.chosen_language.translate("threats_table_error_of_plugin", plugin_name=plugin.name, error=e),
+                    self.logapi.chosen_language.translate("threats_table_error_of_plugin", plugin_name=plugin.name, error=__import__("traceback").format_exc()),
                     self.logapi.LOGTYPE.ERROR
                 )
             self.progress_update.emit(int((index + 1) / total * 100))

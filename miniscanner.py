@@ -46,13 +46,13 @@ if myconfig.data == None:
     myconfig.data = {"agreed_with_disclaimer": False, "last_language": "", "skip_lang": False}
 
 if myconfig["skip_lang"]:
-    chosen_language = Localization(json.load(open(f"./translations/{myconfig["last_language"]}", "r")))
+    chosen_language = Localization(json.load(open(f"./translations/{myconfig["last_language"]}", "r", encoding='utf-8', errors='replace')))
 else:
     localizations_map = {}
     localization_data_for_ui = []
 
     for i in os.listdir("./translations"):
-        obj = Localization(json.load(open(f"./translations/{i}", "r")))
+        obj = Localization(json.load(open(f"./translations/{i}", "r", encoding='utf-8', errors='replace')))
         localizations_map.update({i: obj})
         localization_data_for_ui.append([i, obj.language_name])
 
@@ -133,6 +133,8 @@ import utils.installed_apps as installed_apps
 import utils.lnk_tools as lnk_tools
 import utils.paths as paths
 import utils.autorun_utils as autorun_utils
+import utils.indexer as indexer
+import utils.hosts_utils as hosts_utils
 
 class API:
     version = "1.0"
@@ -145,8 +147,10 @@ class API:
     # Libraries
     installed_apps = installed_apps
     lnk_tools = lnk_tools
-    paths = paths
+    paths = paths.PATHS()
     autorun_utils = autorun_utils
+    indexer = indexer
+    hosts_utils = hosts_utils
 
     def get_config_object(self, plugin_object, name_of_file, type_of_config=ConfigType.JSON):
         if not os.path.exists(f"./config/{plugin_object.name}") or os.path.isfile(f"./config/{plugin_object.name}"):

@@ -29,3 +29,13 @@ def split_by_blocks(data,
     split_by_blocks("data", 2) -> ["da","ta"]
     '''
     return list(data[0+i:block_size+i] for i in range(0, len(data), block_size))
+
+def merge_arrays(*args):
+    result = []
+    seen = set()
+    for lst in args:
+        for x in lst:
+            if x not in seen:
+                seen.add(x)
+                result.append(x)
+    return result

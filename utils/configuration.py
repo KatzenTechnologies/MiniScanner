@@ -13,7 +13,7 @@ class Configuration:
             file = open(self.path, "wb")
             marshal.dump(self.data, file)
         elif self.type_of_config == ConfigurationTypes.JSON:
-            file = open(self.path, "w")
+            file = open(self.path, "w", encoding='utf-8')
             json.dump(self.data, file)
         file.close()
 
@@ -22,7 +22,7 @@ class Configuration:
             file = open(self.path, "rb")
             self.data = marshal.load(file)
         elif self.type_of_config == ConfigurationTypes.JSON:
-            file = open(self.path, "r")
+            file = open(self.path, "r", encoding='utf-8')
             self.data = json.load(file)
         file.close()
 

@@ -7,27 +7,6 @@ Plugins can also implement their own **APIs** for system interaction.
 
 ---
 
-## **Current Versions of Various Components**
-
-### **Base: v1.1.0**  
-**Core components of MiniScanner, excluding the API**
-
-### **API: v1.1.0**  
-**API for interaction with the system**
-
-#### **LNK Tools: v1.0.0**  
-*Interaction with shortcut files (e.g., for analysis)*
-
-#### **ProgramList: v1.0.0**  
-*Retrieving a list of installed applications*
-
-#### **Autorun Utils: v1.0.0**  
-*Getting autorun-related information*
-
-#### **Paths: v1.0.1**  
-*Common system paths*
-
----
 
 # ⚠ **DISCLAIMER**
 
