@@ -24,6 +24,7 @@ class AutorunObject:
         return "Key: "+self.reg_path
 
 def get_autorun():
+    if platform.system() == "Linux": raise NotImplemented
 
     autorun_programs = []
     try:

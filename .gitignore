@@ -3,3 +3,4 @@ plugins
 .idea
 config
 logs
+_data
