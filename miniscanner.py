@@ -135,6 +135,7 @@ import utils.paths as paths
 import utils.autorun_utils as autorun_utils
 import utils.indexer as indexer
 import utils.hosts_utils as hosts_utils
+import utils.services_utils as services_toolkit
 
 class API:
     version = "1.0"
@@ -151,6 +152,7 @@ class API:
     autorun_utils = autorun_utils
     indexer = indexer
     hosts_utils = hosts_utils
+    services_toolkit = services_toolkit
 
     def get_config_object(self, plugin_object, name_of_file, type_of_config=ConfigType.JSON):
         if not os.path.exists(f"./config/{plugin_object.name}") or os.path.isfile(f"./config/{plugin_object.name}"):

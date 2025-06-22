@@ -1,18 +1,26 @@
 import os
 import configparser
 import win32com.client
-import pylnk3
+import struct
 
-def extract_url_from_linktargetidlist(path):
-    try:
-        with open(path, "rb") as f:
-            lnk = pylnk3.parse(f)
-            for item in lnk.link_target_id_list.items:
-                data_str = item.data_as_string()
-                return data_str
-    except Exception as e:
+def extract_linktargetidlist(path):
+    with open(path, 'rb') as f:
+        data = f.read()
+
+    if data[0:4] != b'\x4C\x00\x00\x00':
         return None
-    return None
+
+    header_size = struct.unpack_from("<I", data, 0)[0]
+    link_flags = struct.unpack_from("<I", data, 0x14)[0]
+
+    has_link_target_id_list = link_flags & 0x00000001
+    if not has_link_target_id_list:
+        return None
+
+    id_list_size = struct.unpack_from("<H", data, header_size)[0]
+    id_list_data = data[header_size+2 : header_size+2+id_list_size]
+
+    return id_list_data
 
 
 def parse_lnk(path):
@@ -29,23 +37,20 @@ def parse_lnk(path):
 
         if target:
             if arguments:
-                return f'{target} {arguments}'
-            return target
-
-        if arguments and os.path.exists(arguments):
-            return arguments
+                return target.encode() + b'' + arguments.encode()
+            return target.encode()
 
         if working_dir and arguments:
             combined = os.path.join(working_dir, arguments)
             if os.path.exists(combined):
-                return combined
+                return combined.encode()
 
         if arguments:
-            return arguments
+            return arguments.encode()
         if working_dir:
-            return working_dir
+            return working_dir.encode()
 
-        url = extract_url_from_linktargetidlist(abspath)
+        url = extract_linktargetidlist(abspath)
         if url:
             return url
 
@@ -54,12 +59,12 @@ def parse_lnk(path):
     elif ext == '.url':
         config = configparser.ConfigParser()
         config.read(path)
-        return config['InternetShortcut'].get('URL', None)
+        return config['InternetShortcut'].get('URL', None).encode()
 
     elif ext == '.desktop':
         config = configparser.ConfigParser(strict=False)
         config.read(path)
-        return config['Desktop Entry'].get('Exec', None)
+        return config['Desktop Entry'].get('Exec', None).encode()
 
     else:
         raise ValueError("Unsupported file type")

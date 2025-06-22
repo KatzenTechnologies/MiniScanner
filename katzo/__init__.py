@@ -18,7 +18,7 @@ def clean(arraylist: list | tuple) -> list:
     '''
     result = []
     for i in arraylist:
-        if i != '':
+        if i != '' and i != b'':
             result.append(i)
     return result
 
@@ -39,3 +39,6 @@ def merge_arrays(*args):
                 seen.add(x)
                 result.append(x)
     return result
+
+def wide(data):
+    return b''.join(bytes([b, 0x00]) for b in data)
