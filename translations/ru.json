@@ -37,6 +37,10 @@
     "threats_table_confirmation": "Подтверждение",
     "threats_table_remove_file": "Удалить файл $filename?",
     "threats_table_error": "Ошибка",
-    "threats_table_error_of_remove": "Ошибка удаления: $error"
+    "threats_table_error_of_remove": "Ошибка удаления: $error",
+    "threats_table_auto_delete": "Удалять без предупреждения",
+    "threats_table_auto_delete_warning": "Вы включили автоматическое удаление. Файлы будут удаляться без подтверждения. Продолжайте только если вы уверены.",
+    "threats_table_warning": "Предупреждение"
+
   }
 }

@@ -37,6 +37,10 @@
     "threats_table_confirmation": "Confirmation",
     "threats_table_remove_file": "Remove file $filename?",
     "threats_table_error": "Error",
-    "threats_table_error_of_remove": "Remove error: $error"
+    "threats_table_error_of_remove": "Remove error: $error",
+    "threats_table_auto_delete": "Auto-delete without confirmation",
+    "threats_table_auto_delete_warning": "You have enabled automatic deletion. Files will be deleted without confirmation. Proceed only if you are sure.",
+    "threats_table_warning": "Warning"
+
   }
 }

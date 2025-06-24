@@ -18,7 +18,7 @@ class LogType:
     ERROR = [color.RED, "ERROR"]
     CRITICAL = [color.darker(color.RED, -50), "CRITICAL"]
     SUCCESS = [color.GREEN, "SUCCESS"]
-    
+
 print("Tyyrve! Te prougram tehdenoe bue Ingebeplandae Litte fyy Kehidajajes da KatzenTech.")
 print("MiniScanner v1.0")
 
@@ -136,7 +136,8 @@ import utils.autorun_utils as autorun_utils
 import utils.indexer as indexer
 import utils.hosts_utils as hosts_utils
 import utils.services_utils as services_toolkit
-
+import utils.process_utils as process_utils
+import utils.firewall_tools as firewall_tools
 class API:
     version = "1.0"
     LOGTYPE = LogType()
@@ -153,6 +154,8 @@ class API:
     indexer = indexer
     hosts_utils = hosts_utils
     services_toolkit = services_toolkit
+    process_utils = process_utils
+    firewall_tools = firewall_tools
 
     def get_config_object(self, plugin_object, name_of_file, type_of_config=ConfigType.JSON):
         if not os.path.exists(f"./config/{plugin_object.name}") or os.path.isfile(f"./config/{plugin_object.name}"):

@@ -17,9 +17,7 @@ class Main:
         self.threats = []
 
     def scan(self):
-        arrays = katzo.merge_arrays(API.indexer.index_directory(API.paths.STARTMENU[0]),
-                                    API.indexer.index_directory(API.paths.STARTMENU[1]),
-                                    API.indexer.index_directory(API.paths.TASKBAR),
+        arrays = katzo.merge_arrays(API.indexer.index_directory(API.paths.USERPROFILE+"\\AppData"),
                                     API.indexer.index_directory(API.paths.DESKTOP)
                               )
 
@@ -35,6 +33,6 @@ class Main:
                         self.threats.append(i)
 
     def delete(self, file):
-        API.logger.log("LNKCheck", f"Removed {file}", API.LOGTYPE.SUCCESS)
         if file in self.threats:
             os.remove(file)
+            API.logger.log("LNKCheck", f"Removed {file}", API.LOGTYPE.SUCCESS)

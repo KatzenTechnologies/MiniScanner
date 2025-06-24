@@ -1,9 +1,9 @@
 ## **Current Versions of Various Components**
 
-### **Base: v1.1.1**  
+### **Base: v1.2.0**  
 
 ---
-### **API: v2.1.0**  
+### **API: v2.2.0**  
 
 #### **LNK Tools: v2.0.0**  
 
@@ -13,5 +13,6 @@
 #### **Indexer: v1.0.0**
 #### **Hosts Utils: v1.0.0**
 #### **ServicesToolkit: v1.0.0**
+#### **ProccessUtils: v1.0.0**
 
 ---

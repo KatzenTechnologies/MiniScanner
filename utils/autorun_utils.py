@@ -1,60 +1,98 @@
-import winreg
+import os
 import platform
+import subprocess
+from dataclasses import dataclass
+from enum import Enum, auto
 
-class AutorunObject:
-    def __init__(self, registry_path, bad, file_path, key_type=None):
-        self.reg_path = registry_path
-        self.name = bad
-        self.key_type = key_type
-        self.file_path = file_path
-    def cure(self):
-        # Пока полностью не протестирована...
-        raise NotImplemented
+class SourceType(Enum):
+    HKCU_RUN = auto()
+    HKLM_RUN = auto()
+    HKCU_RUNONCE = auto()
+    HKLM_RUNONCE = auto()
+    HKCU_SHELL = auto()
+    HKLM_SHELL = auto()
+    STARTUP_FOLDER = auto()
+
+@dataclass
+class AutorunEntry:
+    source: SourceType
+    platform: str
+    location: str
+    name: str
+    command: str
+
+    def delete(self):
         try:
-            key = winreg.OpenKey(self.key_type, self.reg_path, 0, winreg.KEY_ALL_ACCESS)
+            if self.platform == "Windows":
+                import winreg
 
-            winreg.DeleteValue(key, self.name)
-            winreg.CloseKey(key)
-        except FileNotFoundError:
-            return float("inf")
-        except OSError as e:
-            return float("nan")
+                if self.source in {
+                    SourceType.HKCU_RUN,
+                    SourceType.HKLM_RUN,
+                    SourceType.HKCU_RUNONCE,
+                    SourceType.HKLM_RUNONCE,
+                    SourceType.HKCU_SHELL,
+                    SourceType.HKLM_SHELL,
+                }:
+                    hive = winreg.HKEY_CURRENT_USER if "HKCU" in self.location else winreg.HKEY_LOCAL_MACHINE
+                    subkey = self.location.split("\\", 1)[1]
+                    with winreg.OpenKey(hive, subkey, 0, winreg.KEY_SET_VALUE) as key:
+                        winreg.DeleteValue(key, self.name)
+                        return True
 
-    def __str__(self):
-        return "Key: "+self.reg_path
+                elif self.source == SourceType.STARTUP_FOLDER:
+                    os.remove(os.path.join(self.location, self.name))
+                    return True
 
-def get_autorun():
-    if platform.system() == "Linux": raise NotImplemented
+        except Exception:
+            return False
 
-    autorun_programs = []
-    try:
-        is_64bit = platform.machine().endswith('64')
-        keys = [winreg.HKEY_CURRENT_USER]
-        if is_64bit:
-            keys.append(winreg.HKEY_LOCAL_MACHINE)
+        return False
 
-        for key_type in keys:
-            try:
-                key_path = r"Software\Microsoft\Windows\CurrentVersion\Run"
-                # Большинство вирусов сидят в w32 ветке, чуть позже добавлю считывание сразу нескольких веток
-                # if key_type == winreg.HKEY_LOCAL_MACHINE and is_64bit:
-                #     key_path = r"Software\Wow6432Node\Microsoft\Windows\CurrentVersion\Run"
+def get_autoruns(sources: list[SourceType]) -> list[AutorunEntry]:
+    entries = []
+    system = platform.system()
 
-                key = winreg.OpenKey(key_type, key_path)
-                i = 0
-                while True:
-                    try:
-                        name, value, type = winreg.EnumValue(key, i)
-                        coolobj = AutorunObject(key_path, name, value, key_type = key_type)
-                        autorun_programs.append(coolobj)
-                        i += 1
-                    except OSError:
-                        break
-                winreg.CloseKey(key)
-            except OSError as e:
-                pass
+    if system == "Windows":
+        import winreg
+        registry_paths = {
+            SourceType.HKCU_RUN: ("HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run", winreg.HKEY_CURRENT_USER),
+            SourceType.HKLM_RUN: ("HKLM\\Software\\Microsoft\\Windows\\CurrentVersion\\Run", winreg.HKEY_LOCAL_MACHINE),
+            SourceType.HKCU_RUNONCE: ("HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\RunOnce", winreg.HKEY_CURRENT_USER),
+            SourceType.HKLM_RUNONCE: ("HKLM\\Software\\Microsoft\\Windows\\CurrentVersion\\RunOnce", winreg.HKEY_LOCAL_MACHINE),
+            SourceType.HKCU_SHELL: ("HKCU\\Software\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon", winreg.HKEY_CURRENT_USER),
+            SourceType.HKLM_SHELL: ("HKLM\\Software\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon", winreg.HKEY_LOCAL_MACHINE),
+        }
 
-    except Exception as e:
-        pass
+        for source in sources:
+            if source in registry_paths:
+                path, hive = registry_paths[source]
+                subkey = path.split("\\", 1)[1]
+                try:
+                    with winreg.OpenKey(hive, subkey) as key:
+                        i = 0
+                        while True:
+                            try:
+                                value_name, value_data, _ = winreg.EnumValue(key, i)
+                                if source.name.endswith("SHELL") and value_name.lower() != "shell":
+                                    i += 1
+                                    continue
+                                entries.append(AutorunEntry(source, "Windows", path, value_name, value_data))
+                                i += 1
+                            except OSError:
+                                break
+                except FileNotFoundError:
+                    continue
 
-    return autorun_programs
+            elif source == SourceType.STARTUP_FOLDER:
+                paths = [
+                    os.path.expandvars(r"%APPDATA%\\Microsoft\\Windows\\Start Menu\\Programs\\Startup"),
+                    os.path.expandvars(r"%PROGRAMDATA%\\Microsoft\\Windows\\Start Menu\\Programs\\Startup"),
+                ]
+                for folder in paths:
+                    if os.path.isdir(folder):
+                        for f in os.listdir(folder):
+                            full = os.path.join(folder, f)
+                            entries.append(AutorunEntry(source, "Windows", folder, f, full))
+
+    return entries
