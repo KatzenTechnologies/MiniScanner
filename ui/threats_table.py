@@ -40,6 +40,7 @@ class VirusScanWindow(QDialog):
         self.api = api
         self.plugins = plugins
         self.threat_rows = []  # [(filename, threat_name, plugin, delete_button)]
+        self.delete_threads = []  # Список для хранения потоков DeleteThread
 
         self.setWindowTitle("MiniScanner | " + api.chosen_language.translate("threats_table_title"))
         self.resize(750, 480)
@@ -117,6 +118,7 @@ class VirusScanWindow(QDialog):
                         self_inner.finished_signal.emit(False, str(e))
 
             delete_thread = DeleteThread()
+            self.delete_threads.append(delete_thread)  # Сохраняем ссылку на поток
 
             def on_finished(success, error):
                 if success:
@@ -130,7 +132,11 @@ class VirusScanWindow(QDialog):
                         self.api.chosen_language.translate("threats_table_error"),
                         self.api.chosen_language.translate("threats_table_error_of_remove", error=error)
                     )
+                delete_thread.quit()
+                delete_thread.wait()
                 delete_thread.deleteLater()
+                if delete_thread in self.delete_threads:
+                    self.delete_threads.remove(delete_thread)  # Удаляем ссылку после завершения
 
             delete_thread.finished_signal.connect(on_finished)
             delete_thread.start()

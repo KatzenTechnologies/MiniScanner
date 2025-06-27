@@ -1,32 +1,45 @@
 import winreg
+import re
 
 class FirewallRule:
-    def __init__(self, name, raw_data):
-        self.name = name
+    def __init__(self, reg_name, raw_data):
+        self.reg_name = reg_name
         self.raw_data = raw_data
-        self.parsed = self.parse_data(raw_data)
-        self.description = self.parsed.get("Desc")
-        self.application = self.parsed.get("App")
-        self.service = self.parsed.get("Svc")
-        self.protocol = self.parsed.get("Prot")
-        self.local_ports = self.parsed.get("LPort")
-        self.remote_ports = self.parsed.get("RPort")
-        self.local_addresses = self.parsed.get("LA4") or self.parsed.get("LA6")
-        self.remote_addresses = self.parsed.get("RA4") or self.parsed.get("RA6")
-        self.direction = self.parsed.get("Dir")
-        self.action = self.parsed.get("Action")
-        self.edge_traversal = self.parsed.get("Edge")
-        self.interfacetype = self.parsed.get("IFType")
-        self.profile = self.parsed.get("Profile")
-        self.enabled = self.parsed.get("Active") == "TRUE"
+        self.fields = self.parse(raw_data)
 
-    def parse_data(self, data):
+        self.name = self.fields.get("Name") or self.guess_name()
+        self.app = self.fields.get("App")
+        self.action = self.fields.get("Action")
+        self.direction = self.fields.get("Dir")
+        self.protocol = self.fields.get("Protocol")
+        self.description = self.fields.get("Desc")
+        self.active = self.fields.get("Active") == "TRUE"
+
+    def parse(self, raw: str) -> dict:
         result = {}
-        for item in data.split("|"):
-            if "=" in item:
-                key, val = item.split("=", 1)
-                result[key] = val
+        parts = raw.strip().split("|")
+        for part in parts:
+            if "=" in part:
+                k, v = part.split("=", 1)
+                result[k] = v
         return result
+
+    def guess_name(self) -> str:
+        if "EmbedCtxt" in self.fields:
+            return self.clean_resource_name(self.fields["EmbedCtxt"])
+        if "AppPkgId" in self.fields:
+            return self.fields["AppPkgId"]
+        if "App" in self.fields:
+            return self.fields["App"].split("\\")[-1]
+        if "Desc" in self.fields and self.fields["Desc"]:
+            return self.fields["Desc"]
+        return "[NoName]"
+
+    def clean_resource_name(self, ctxt: str) -> str:
+        ctxt = re.sub(r"^@?\{?", "", ctxt)
+        ctxt = re.sub(r"\?.*$", "", ctxt)
+        ctxt = ctxt.split("\\")[-1]
+        return ctxt.strip(" {}")
 
     def delete(self):
         with winreg.OpenKey(
@@ -35,7 +48,7 @@ class FirewallRule:
             0,
             winreg.KEY_SET_VALUE
         ) as key:
-            winreg.DeleteValue(key, self.name)
+            winreg.DeleteValue(key, self.reg_name)
 
 def get_firewall_rules():
     rules = []
@@ -45,7 +58,8 @@ def get_firewall_rules():
         while True:
             try:
                 name, data, _ = winreg.EnumValue(key, i)
-                rules.append(FirewallRule(name, data))
+                rule = FirewallRule(name, data)
+                rules.append(rule)
                 i += 1
             except OSError:
                 break

@@ -1,9 +1,9 @@
 ## **Current Versions of Various Components**
 
-### **Base: v1.2.0**  
+### **Base: v1.2.1**  
 
 ---
-### **API: v2.2.0**  
+### **API: v2.2.1**  
 
 #### **LNK Tools: v2.0.0**  
 
