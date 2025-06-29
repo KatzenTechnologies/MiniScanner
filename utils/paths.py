@@ -2,6 +2,9 @@ import platform
 from os import getenv
 from pathlib import Path
 
+def split_path(path_str):
+    return list(Path(path_str).parts)
+
 class PATHS:
     if platform.system() == "Windows":
         APPDATA_ROAMING = getenv("appdata")

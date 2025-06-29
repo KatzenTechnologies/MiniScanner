@@ -29,3 +29,12 @@ def get_pids_by_name(name):
         except (psutil.NoSuchProcess, psutil.AccessDenied):
             pass
     return pids
+def find_process_paths_by_name(name: str):
+    matches = []
+    for proc in psutil.process_iter(attrs=['pid', 'name', 'exe']):
+        try:
+            if name.lower() in proc.info['name'].lower():
+                matches.append(proc.info['exe'])
+        except (psutil.NoSuchProcess, psutil.AccessDenied):
+            continue
+    return list(filter(None, matches))

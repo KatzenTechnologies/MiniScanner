@@ -1,83 +1,73 @@
 import platform
-import subprocess
 
-class Service:
-    def __init__(self, name):
-        self.name = name
-        self.system = platform.system()
+if platform.system() == "Windows":
+    import win32service
+    import win32serviceutil
+    import win32con
 
-    def start(self):
-        if self.system == "Windows":
-            subprocess.run(["sc", "start", self.name], check=False)
-        elif self.system == "Linux":
-            subprocess.run(["systemctl", "start", self.name], check=False)
+    class Service:
+        def __init__(self, name, status=None):
+            self.name = name
+            self.status_cache = status
 
-    def stop(self):
-        if self.system == "Windows":
-            subprocess.run(["sc", "stop", self.name], check=False)
-        elif self.system == "Linux":
-            subprocess.run(["systemctl", "stop", self.name], check=False)
+        def start(self):
+            win32serviceutil.StartService(self.name)
 
-    def restart(self):
-        if self.system == "Windows":
-            self.stop()
-            self.start()
-        elif self.system == "Linux":
-            subprocess.run(["systemctl", "restart", self.name], check=False)
+        def stop(self):
+            win32serviceutil.StopService(self.name)
 
-    def status(self):
-        if self.system == "Windows":
-            result = subprocess.run(["sc", "query", self.name], capture_output=True, text=True)
-            if "RUNNING" in result.stdout:
-                return "running"
-            elif "STOPPED" in result.stdout:
-                return "stopped"
-            else:
+        def restart(self):
+            win32serviceutil.RestartService(self.name)
+
+        def delete(self):
+            win32serviceutil.RemoveService(self.name)
+
+        def status(self):
+            try:
+                code = win32serviceutil.QueryServiceStatus(self.name)[1]
+                return "running" if code == win32service.SERVICE_RUNNING else "stopped"
+            except Exception:
                 return "unknown"
-        elif self.system == "Linux":
-            result = subprocess.run(["systemctl", "is-active", self.name], capture_output=True, text=True)
-            return result.stdout.strip()
 
+    def get_services():
+        hscm = win32service.OpenSCManager(None, None, win32con.GENERIC_READ)
+        statuses = win32service.EnumServicesStatus(hscm)
+        return [Service(name, "running" if status == win32service.SERVICE_RUNNING else "stopped")
+                for name, _, status in statuses]
 
-def list_services():
-    system = platform.system()
-    services = []
+elif platform.system() == "Linux":
+    from pydbus import SystemBus
 
-    if system == "Windows":
-        try:
-            output = subprocess.check_output(['sc', 'query', 'type=', 'service', 'state=', 'all'], text=True, encoding="utf-8", errors="ignore")
-        except subprocess.CalledProcessError:
-            return []
+    bus = SystemBus()
+    systemd = bus.get(".systemd1")
 
-        lines = output.splitlines()
-        current = {}
-        for line in lines:
-            if "SERVICE_NAME:" in line:
-                if current:
-                    services.append(current)
-                    current = {}
-                current["name"] = line.split(":", 1)[1].strip()
-            elif "STATE" in line:
-                if "RUNNING" in line:
-                    current["status"] = "running"
-                else:
-                    current["status"] = "stopped"
-        if current:
-            services.append(current)
+    class Service:
+        def __init__(self, name, status=None):
+            self.name = name
+            self.status_cache = status
 
-    elif system == "Linux":
-        try:
-            output = subprocess.check_output(['systemctl', 'list-units', '--type=service', '--all', '--no-pager', '--no-legend'], text=True)
-        except subprocess.CalledProcessError:
-            return []
+        def start(self):
+            systemd.StartUnit(self.name, "replace")
 
-        for line in output.strip().splitlines():
-            parts = line.split(None, 4)
-            if len(parts) >= 4:
-                name, load, active, sub = parts[:4]
-                services.append({
-                    "name": name,
-                    "status": active
-                })
+        def stop(self):
+            systemd.StopUnit(self.name, "replace")
 
-    return services
+        def restart(self):
+            systemd.RestartUnit(self.name, "replace")
+
+        def delete(self):
+            raise NotImplementedError()
+
+        def status(self):
+            try:
+                unit = systemd.LoadUnit(self.name)
+                return bus.get(".systemd1", unit).ActiveState
+            except Exception:
+                return "unknown"
+
+    def get_services():
+        units = systemd.ListUnits()
+        return [Service(unit[0], unit[4]) for unit in units if unit[0].endswith(".service")]
+
+else:
+    raise NotImplementedError("Unsupported OS")

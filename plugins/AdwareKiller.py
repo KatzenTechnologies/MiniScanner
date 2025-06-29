@@ -5,6 +5,7 @@ import winreg
 import tkinter.messagebox as msg
 import time
 import psutil
+from pathlib import Path
 
 
 
@@ -66,6 +67,62 @@ def check_autoruns(lst):
                 return True
     return False
 
+def remove(file):
+    try:
+        if dir_exists(file):
+            API.logger.log("AdwareKiller", f"Removing: {file}",
+                           API.LOGTYPE.INFO)
+            shutil.rmtree(file)
+        elif file_exists(file):
+            API.logger.log("AdwareKiller", f"Removing: {file}",
+                           API.LOGTYPE.INFO)
+            os.remove(file)
+
+    except:
+        API.logger.log("AdwareKiller", r"Error: " + traceback.format_exc(),
+                       API.LOGTYPE.ERROR)
+
+def get_services(name):
+    data = []
+    for i in API.services_toolkit.get_services():
+        if name in i.name:
+            data.append(i)
+    return data
+
+def kill_luminati():
+    my_try = API.process_utils.find_process_paths_by_name("net_updater32.exe")
+
+    luminati_path = os.path.dirname(my_try[0]) if len(my_try) == 1 else "C:/a/plug.txt"
+    API.process_utils.kill_processes_by_name("brightdata.exe")
+    API.process_utils.kill_processes_by_name("net_updater32.exe")
+    API.process_utils.kill_processes_by_name("luminati-m-controller.exe")
+    if list(Path(luminati_path).parts)[-1] == "Luminati-m":
+        remove(luminati_path)
+    remove(API.paths.PROGRAMDATA + "\\BrightData")
+    for i in get_services("luminati_net_updater_"):
+        API.logger.log("AdwareKiller", f"Killing service: {i.name}", API.LOGTYPE.INFO)
+        i.delete()
+
+def kill_proxysdk():
+    API.process_utils.kill_processes_by_name("proxy-sdk_crashpad_handler.exe")
+    API.process_utils.kill_processes_by_name("proxy-sdk.exe")
+    SourceType = API.autorun_utils.SourceType
+    get_autoruns = API.autorun_utils.get_autoruns
+
+    API.logger.log("AdwareKiller", r"Scanning autoruns...", API.LOGTYPE.INFO)
+    autoruns = get_autoruns([SourceType.HKLM_RUN, SourceType.HKCU_RUN])
+    for i in autoruns:
+        if "proxy-sdk.exe" in i.command:
+            API.logger.log("AdwareKiller", r"Found ProxySDK, removing...", API.LOGTYPE.INFO)
+            try:
+                i.delete()
+            except:
+                API.logger.log("AdwareKiller", r"Error: " + traceback.format_exc(),
+                               API.LOGTYPE.ERROR)
+    remove(API.paths.APPDATA_LOCAL + '\\proxy-sdk')
+
+
+
 
 class Main:
     name = "AdwareKiller"
@@ -75,7 +132,10 @@ class Main:
             ["Download Studio", "PUP.DStudio"],
             ["Zona", "Adware.Zona"],
             ["MediaGet", "Adware.Mediaget"],
-            ["Telamon Cleaner", "PUP.Telamon"]
+            ["Telamon Cleaner", "PUP.Telamon"],
+            ["KLauncher,","PUP.KLauncher"],
+            ["PixelSee", "Adware.Pixelsee"],
+            ["uFiler", "PUP.uBar.A"]
         ]
         self.threats_families = []
         self.threats = {}
@@ -123,17 +183,75 @@ class Main:
                              dir_exists(API.paths.USERPROFILE+'\\mediaget2'),
                              check_firewall(["MediaGet"]),
                              dir_exists(API.paths.APPDATA_LOCAL+'\\Media Get LLC'),
-                             check_autoruns(['mediaget.exe', "proxy-sdk.exe"])])
+                             check_autoruns(['mediaget.exe'])])
 
         if not "Adware.Mediaget" in self.threats_families and mediaget_flag:
             API.add_threat("Mediaget (remnants)", "Adware.Mediaget", self)
             self.threats.update({"Mediaget (remnants)": ["Adware.Mediaget", {"uninstall_path":""}]})
 
-        telamon_cleaner_flag = dir_exists(API.paths.APPDATA_LOCAL+'\\TelamonCleaner')
-
-        if not "PUP.Telamon" in self.threats_families and telamon_cleaner_flag:
+        if not "PUP.Telamon" in self.threats_families and dir_exists(API.paths.APPDATA_LOCAL+'\\TelamonCleaner'):
             API.add_threat("Telamon Cleaner (remnants)", "PUP.Telamon", self)
             self.threats.update({"Telamon Cleaner (remnants)": ["PUP.Telamon", {"uninstall_path":""}]})
+
+        klauncher_flag = any([
+            check_registry_key_exists(winreg.HKEY_CURRENT_USER, r"Software\KLauncher"),
+            dir_exists(API.paths.APPDATA_ROAMING + '\\.minecraft\\gameicons'),
+            file_exists(API.paths.APPDATA_ROAMING + '\\.minecraft\\tbp.exe'),
+            dir_exists(API.paths.APPDATA_ROAMING + '\\.minecraft\\logs\\klauncher')
+
+        ])
+
+        if not "PUP.KLauncher" in self.threats_families and klauncher_flag:
+            API.add_threat("KLauncher (remnants)", "PUP.KLauncher", self)
+            self.threats.update({"KLauncher (remnants)": ["PUP.KLauncher", {"uninstall_path":""}]})
+
+        pixelsee_flag = any([
+            check_registry_key_exists(winreg.HKEY_CURRENT_USER, r"SOFTWARE\PixelSee"),
+            check_registry_key_exists(winreg.HKEY_CURRENT_USER, r"SOFTWARE\PixelSee LLC"),
+            dir_exists(API.paths.APPDATA_LOCAL + "\\PixelSee LLC")
+        ])
+
+        if not "Adware.Pixelsee" in self.threats_families and pixelsee_flag:
+            API.add_threat("PixelSee (remnants)", "Adware.Pixelsee", self)
+            self.threats.update({"PixelSee (remnants)": ["Adware.Pixelsee", {"uninstall_path":""}]})
+
+
+        luminati_flag = any([
+            API.process_utils.get_pids_by_name("net_updater32.exe") != [],
+            API.process_utils.get_pids_by_name("brightdata.exe") != [],
+            dir_exists(API.paths.PROGRAMDATA+"\\BrightData"),
+            get_services("luminati_net_updater_") != []
+
+        ])
+        if not "Adware.Pixelsee" in self.threats_families and \
+            not "Proxy.Luminati" in self.threats_families\
+            and luminati_flag:
+            API.add_threat("Luminati", "Proxy.Luminati", self)
+            self.threats.update({"Luminati": ["Proxy.Luminati", {"uninstall_path":""}]})
+
+        proxysdk_flag = any([
+            API.process_utils.get_pids_by_name("proxy-sdk.exe") != [],
+            dir_exists(API.paths.APPDATA_LOCAL + '\\proxy-sdk'),
+            check_autoruns(["proxy-sdk.exe"])
+
+        ])
+        if not "Adware.Mediaget" in self.threats_families and \
+            not "Proxy.ProxySDK" in self.threats_families\
+            and proxysdk_flag:
+            API.add_threat("ProxySDK", "Proxy.ProxySDK", self)
+            self.threats.update({"ProxySDK": ["Proxy.ProxySDK", {"uninstall_path":""}]})
+
+        #PUP.uBar.A
+        ufiler_flag = any([
+            check_firewall(["uFiler"]),
+            check_autoruns(["uFiler.exe"]),
+            check_registry_key_exists(winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\Classes\.ufile"),
+            check_registry_key_exists(winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\Classes\uFiler"),
+            dir_exists(API.paths.PROGRAMDATA+'\\uFiler')
+        ])
+        if not "PUP.uBar.A" in self.threats_families and ufiler_flag:
+            API.add_threat("uFiler (remnants)", "PUP.uBar.A", self)
+            self.threats.update({"uFiler (remnants)": ["PUP.uBar.A", {"uninstall_path":""}]})
     def delete(self, file):
 
         if file in self.threats.keys():
@@ -164,14 +282,7 @@ class Main:
                                        API.LOGTYPE.INFO)
                         delete_registry_tree(winreg.HKEY_CURRENT_USER, r"SOFTWARE\Classes\magnet")
 
-                    try:
-                        if dir_exists(API.paths.APPDATA_LOCAL+"\\Download Studio"):
-                            API.logger.log("AdwareKiller", f"Removing: {API.paths.APPDATA_LOCAL}/Download Studio",
-                                           API.LOGTYPE.INFO)
-                            shutil.rmtree(API.paths.APPDATA_LOCAL+"\\Download Studio")
-                    except:
-                        API.logger.log("AdwareKiller", r"Error: "+traceback.format_exc(),
-                                       API.LOGTYPE.ERROR)
+                    remove(API.paths.APPDATA_LOCAL+"\\Download Studio")
 
                     API.logger.log("AdwareKiller", r"Scanning firewall rules...", API.LOGTYPE.INFO)
                     firewall_rules = API.firewall_tools.get_firewall_rules()
@@ -213,32 +324,9 @@ class Main:
                     API.logger.log("AdwareKiller", r"Checking for relative: HKCU\SOFTWARE\Classes\DHT\DefaultIcon",
                                    API.LOGTYPE.INFO)
 
-                    try:
-                        if dir_exists(API.paths.APPDATA_ROAMING+"\\Zona"):
-                            API.logger.log("AdwareKiller", f"Removing: {API.paths.APPDATA_ROAMING}/Zona",
-                                           API.LOGTYPE.INFO)
-                            shutil.rmtree(API.paths.APPDATA_ROAMING+"\\Zona")
-                    except:
-                        API.logger.log("AdwareKiller", r"Error: "+traceback.format_exc(),
-                                       API.LOGTYPE.ERROR)
-
-                    try:
-                        if file_exists(API.paths.WINDIR+"\\ZonaUpdater.log"):
-                            API.logger.log("AdwareKiller", f"Removing: {API.paths.WINDIR}/ZonaUpdater.log",
-                                           API.LOGTYPE.INFO)
-                            os.remove(API.paths.WINDIR+"\\ZonaUpdater.log")
-                    except:
-                        API.logger.log("AdwareKiller", r"Error: "+traceback.format_exc(),
-                                       API.LOGTYPE.ERROR)
-
-                    try:
-                        if dir_exists(os.path.dirname(self.threats[file][1]["uninstall_path"])):
-                            API.logger.log("AdwareKiller", r"Removing: "+os.path.dirname(self.threats[file][1]["uninstall_path"]),
-                                           API.LOGTYPE.INFO)
-                            shutil.rmtree(os.path.dirname(self.threats[file][1]["uninstall_path"]))
-                    except:
-                        API.logger.log("AdwareKiller", r"Error: "+traceback.format_exc(),
-                                       API.LOGTYPE.ERROR)
+                    remove(API.paths.APPDATA_ROAMING+"\\Zona")
+                    remove(API.paths.WINDIR+"\\ZonaUpdater.log")
+                    remove(os.path.dirname(self.threats[file][1]["uninstall_path"]))
                 case "Adware.Mediaget":
                     API.process_utils.kill_processes_by_name("mediaget.exe")
                     API.process_utils.kill_processes_by_name("proxy-sdk.exe")
@@ -292,44 +380,68 @@ class Main:
                                 API.logger.log("AdwareKiller", r"Error: " + traceback.format_exc(),
                                                API.LOGTYPE.ERROR)
 
-                    try:
-                        if dir_exists(API.paths.USERPROFILE+'\\mediaget2'):
-                            API.logger.log("AdwareKiller", r"Removing: "+API.paths.USERPROFILE+'\\mediaget2',
-                                           API.LOGTYPE.INFO)
-                            shutil.rmtree(API.paths.USERPROFILE+'\\mediaget2')
-                    except:
-                        API.logger.log("AdwareKiller", r"Error: "+traceback.format_exc(),
-                                       API.LOGTYPE.ERROR)
-
-                    try:
-                        if dir_exists(API.paths.APPDATA_LOCAL+'\\Media Get LLC'):
-                            API.logger.log("AdwareKiller", r"Removing: "+API.paths.APPDATA_LOCAL+'\\Media Get LLC',
-                                           API.LOGTYPE.INFO)
-                            shutil.rmtree(API.paths.APPDATA_LOCAL+'\\Media Get LLC')
-                    except:
-                        API.logger.log("AdwareKiller", r"Error: "+traceback.format_exc(),
-                                       API.LOGTYPE.ERROR)
+                    remove(API.paths.USERPROFILE+'\\mediaget2')
+                    remove(API.paths.APPDATA_LOCAL+'\\Media Get LLC')
                 case "PUP.Telamon":
                     API.process_utils.kill_processes_by_name("TelamonCleaner.exe")
                     os.system(self.threats[file][1]["uninstall_path"])
                     wait_for_exit(["TelamonCleaner.exe"])
                     # Deep Remove
-                    try:
-                        if dir_exists(os.path.dirname(self.threats[file][1]["uninstall_path"])):
-                            API.logger.log("AdwareKiller",
-                                           r"Removing: " + os.path.dirname(self.threats[file][1]["uninstall_path"]),
-                                           API.LOGTYPE.INFO)
-                            shutil.rmtree(os.path.dirname(self.threats[file][1]["uninstall_path"]))
-                    except:
-                        API.logger.log("AdwareKiller", r"Error: " + traceback.format_exc(),
-                                       API.LOGTYPE.ERROR)
-                    try:
-                        if dir_exists(API.paths.APPDATA_LOCAL+"\\TelamonCleaner"):
-                            API.logger.log("AdwareKiller", f"Removing: {API.paths.APPDATA_LOCAL}/TelamonCleaner",
-                                           API.LOGTYPE.INFO)
-                            shutil.rmtree(API.paths.APPDATA_LOCAL+"\\TelamonCleaner")
-                    except:
-                        API.logger.log("AdwareKiller", r"Error: "+traceback.format_exc(),
-                                       API.LOGTYPE.ERROR)
+                    remove(os.path.dirname(self.threats[file][1]["uninstall_path"]))
+                    remove(API.paths.APPDATA_LOCAL+"\\TelamonCleaner")
+                case "PUP.KLauncher":
+                    API.process_utils.kill_processes_by_name("javaw.exe")
+                    os.system(self.threats[file][1]["uninstall_path"])
+                    wait_for_exit(["uninstall.exe"])
+                    # Deep Remove
+                    delete_registry_tree(winreg.HKEY_CURRENT_USER, r"Software\KLauncher")
+                    remove(API.paths.APPDATA_ROAMING + '\\.minecraft\\gameicons')
+                    remove(API.paths.APPDATA_ROAMING + '\\.minecraft\\tbp.exe')
+                    remove(API.paths.APPDATA_ROAMING + '\\.minecraft\\logs\\klauncher')
+                case "Adware.Pixelsee":
+                    API.process_utils.kill_processes_by_name("pixelsee_crashpad_handler.exe")
+                    API.process_utils.kill_processes_by_name("pixelsee.exe")
+                    os.system(self.threats[file][1]["uninstall_path"])
+                    wait_for_exit(["pixelsee-uninstaller.exe"])
+                    # Deep Remove
+                    delete_registry_tree(winreg.HKEY_CURRENT_USER, r"SOFTWARE\PixelSee")
+                    delete_registry_tree(winreg.HKEY_CURRENT_USER, r"SOFTWARE\PixelSee LLC")
+                    remove(API.paths.APPDATA_LOCAL+"\\PixelSee LLC")
+                case "Proxy.Luminati":
+                    kill_luminati()
+                case "Proxy.ProxySDK":
+                    kill_proxysdk()
+                case "PUP.uBar.A":
+                    API.process_utils.kill_processes_by_name("uFiler.exe")
+                    os.system(self.threats[file][1]["uninstall_path"])
+                    wait_for_exit(["uFiler.exe", "UFilerUninstaller.exe"])
+                    # Deep Remove
+                    SourceType = API.autorun_utils.SourceType
+                    get_autoruns = API.autorun_utils.get_autoruns
 
+                    API.logger.log("AdwareKiller", r"Scanning autoruns...", API.LOGTYPE.INFO)
+                    autoruns = get_autoruns([SourceType.HKLM_RUN, SourceType.HKCU_RUN])
+                    for i in autoruns:
+                        if 'uFiler.exe' in i.command:
+                            API.logger.log("AdwareKiller", r"Found UFiler, removing...", API.LOGTYPE.INFO)
+                            try:
+                                i.delete()
+                            except:
+                                API.logger.log("AdwareKiller", r"Error: " + traceback.format_exc(),
+                                               API.LOGTYPE.ERROR)
+                    delete_registry_tree(winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\Classes\.ufile")
+                    delete_registry_tree(winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\Classes\uFiler")
+
+                    API.logger.log("AdwareKiller", r"Scanning firewall rules...", API.LOGTYPE.INFO)
+                    firewall_rules = API.firewall_tools.get_firewall_rules()
+                    for i in firewall_rules:
+                        if "uFiler" in i.name:
+                            API.logger.log("AdwareKiller", r"Found UFiler's rule, removing...", API.LOGTYPE.INFO)
+                            try:
+                                i.delete()
+                            except:
+                                API.logger.log("AdwareKiller", r"Error: " + traceback.format_exc(),
+                                               API.LOGTYPE.ERROR)
+                    remove(API.paths.PROGRAMDATA+'\\uFiler')
+                    remove(os.path.dirname(self.threats[file][1]["uninstall_path"]))
             API.logger.log("AdwareKiller", f"Removed {file}", API.LOGTYPE.SUCCESS)
