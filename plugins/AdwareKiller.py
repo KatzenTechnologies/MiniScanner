@@ -6,8 +6,26 @@ import tkinter.messagebox as msg
 import time
 import psutil
 from pathlib import Path
+import subprocess
+import os
+import re
 
+def run_uninstaller(uninstall_path: str):
+    uninstall_path = uninstall_path.strip()
 
+    match = re.match(r'^(.*?\.exe)\s*(.*)$', uninstall_path, re.IGNORECASE)
+    if not match:
+        return
+
+    exe_path = match.group(1)
+    args_str = match.group(2)
+
+    args = args_str.split() if args_str else []
+
+    try:
+        os.system(f'{exe_path if exe_path.startswith('"') and exe_path.endswith('"') else '"' + exe_path + '"'} {" ".join(args)}')
+    except subprocess.CalledProcessError as e:
+        pass
 
 def delete_registry_tree(root, path, not_recursive=True):
     try:
@@ -126,6 +144,9 @@ def kill_proxysdk():
 
 class Main:
     name = "AdwareKiller"
+    author = "Northkatz"
+    version = '3.1.0'
+
     def __init__(self, API):
         globals()["API"] = API
         self.base = [
@@ -133,9 +154,11 @@ class Main:
             ["Zona", "Adware.Zona"],
             ["MediaGet", "Adware.Mediaget"],
             ["Telamon Cleaner", "PUP.Telamon"],
-            ["KLauncher,","PUP.KLauncher"],
+            ["KLauncher","PUP.KLauncher"],
             ["PixelSee", "Adware.Pixelsee"],
-            ["uFiler", "PUP.uBar.A"]
+            ["uFiler", "PUP.uBar.A"],
+            ["UDL Client", "Adware.Udelka"],
+            ["AppWizard", "Adware.Multibundler.A"]
         ]
         self.threats_families = []
         self.threats = {}
@@ -158,7 +181,7 @@ class Main:
                                     "dstudio-gui.exe" in get_relative(winreg.HKEY_CURRENT_USER, r"SOFTWARE\Classes\magnet\DefaultIcon"),
                                     dir_exists(API.paths.APPDATA_LOCAL+"\\Download Studio")])
 
-        if not "Adware.DStudio" in self.threats_families and download_studio_flag:
+        if not "PUP.DStudio" in self.threats_families and download_studio_flag:
             API.add_threat("Download Studio (remnants)", "PUP.DStudio", self)
             self.threats.update({"Download Studio (remnants)": ["PUP.DStudio", {"uninstall_path":""}]})
 
@@ -252,6 +275,13 @@ class Main:
         if not "PUP.uBar.A" in self.threats_families and ufiler_flag:
             API.add_threat("uFiler (remnants)", "PUP.uBar.A", self)
             self.threats.update({"uFiler (remnants)": ["PUP.uBar.A", {"uninstall_path":""}]})
+
+        #Adware.Multibundler.A
+        appwizard_flag = check_registry_key_exists(winreg.HKEY_CURRENT_USER, r"SOFTWARE\AppWizard")
+
+        if not "Adware.Multibundler.A" in self.threats_families and appwizard_flag:
+            API.add_threat("AppWizard (remnants)", "Adware.Multibundler.A", self)
+            self.threats.update({"AppWizard (remnants)": ["Adware.Multibundler.A", {"uninstall_path":""}]})
     def delete(self, file):
 
         if file in self.threats.keys():
@@ -266,7 +296,7 @@ class Main:
                 case "PUP.DStudio":
                     API.process_utils.kill_processes_by_name("dstudio.exe")
                     API.process_utils.kill_processes_by_name("dstudio-gui.exe")
-                    os.system(self.threats[file][1]["uninstall_path"])
+                    run_uninstaller(self.threats[file][1]["uninstall_path"])
                     wait_for_exit(["unins000.exe", "UN_DS.exe"])
                     # Deep Remove
                     delete_registry_tree(winreg.HKEY_LOCAL_MACHINE, r"Software\Download Studio")
@@ -297,7 +327,7 @@ class Main:
                 case "Adware.Zona":
                     API.process_utils.kill_processes_by_name("ZonaUpdater.exe")
                     API.process_utils.kill_processes_by_name("Zona.exe")
-                    os.system(self.threats[file][1]["uninstall_path"])
+                    run_uninstaller(self.threats[file][1]["uninstall_path"])
                     # Deep Remove
                     wait_for_exit(["uninstall.exe"])
 
@@ -330,7 +360,7 @@ class Main:
                 case "Adware.Mediaget":
                     API.process_utils.kill_processes_by_name("mediaget.exe")
                     API.process_utils.kill_processes_by_name("proxy-sdk.exe")
-                    os.system(self.threats[file][1]["uninstall_path"])
+                    run_uninstaller(self.threats[file][1]["uninstall_path"])
                     wait_for_exit(["mediaget-uninstaller.exe"])
                     # Deep Remove
                     delete_registry_tree(winreg.HKEY_CURRENT_USER, r"SOFTWARE\Classes\mediagetcatalogparams")
@@ -384,14 +414,14 @@ class Main:
                     remove(API.paths.APPDATA_LOCAL+'\\Media Get LLC')
                 case "PUP.Telamon":
                     API.process_utils.kill_processes_by_name("TelamonCleaner.exe")
-                    os.system(self.threats[file][1]["uninstall_path"])
+                    run_uninstaller(self.threats[file][1]["uninstall_path"])
                     wait_for_exit(["TelamonCleaner.exe"])
                     # Deep Remove
                     remove(os.path.dirname(self.threats[file][1]["uninstall_path"]))
                     remove(API.paths.APPDATA_LOCAL+"\\TelamonCleaner")
                 case "PUP.KLauncher":
                     API.process_utils.kill_processes_by_name("javaw.exe")
-                    os.system(self.threats[file][1]["uninstall_path"])
+                    run_uninstaller(self.threats[file][1]["uninstall_path"])
                     wait_for_exit(["uninstall.exe"])
                     # Deep Remove
                     delete_registry_tree(winreg.HKEY_CURRENT_USER, r"Software\KLauncher")
@@ -401,7 +431,7 @@ class Main:
                 case "Adware.Pixelsee":
                     API.process_utils.kill_processes_by_name("pixelsee_crashpad_handler.exe")
                     API.process_utils.kill_processes_by_name("pixelsee.exe")
-                    os.system(self.threats[file][1]["uninstall_path"])
+                    run_uninstaller(self.threats[file][1]["uninstall_path"])
                     wait_for_exit(["pixelsee-uninstaller.exe"])
                     # Deep Remove
                     delete_registry_tree(winreg.HKEY_CURRENT_USER, r"SOFTWARE\PixelSee")
@@ -413,7 +443,7 @@ class Main:
                     kill_proxysdk()
                 case "PUP.uBar.A":
                     API.process_utils.kill_processes_by_name("uFiler.exe")
-                    os.system(self.threats[file][1]["uninstall_path"])
+                    run_uninstaller(self.threats[file][1]["uninstall_path"])
                     wait_for_exit(["uFiler.exe", "UFilerUninstaller.exe"])
                     # Deep Remove
                     SourceType = API.autorun_utils.SourceType
@@ -444,4 +474,17 @@ class Main:
                                                API.LOGTYPE.ERROR)
                     remove(API.paths.PROGRAMDATA+'\\uFiler')
                     remove(os.path.dirname(self.threats[file][1]["uninstall_path"]))
+                case "Adware.Udelka":
+                    API.process_utils.kill_processes_by_name("ClientLauncher.exe")
+                    API.process_utils.kill_processes_by_name("udl-client.exe")
+                    run_uninstaller(self.threats[file][1]["uninstall_path"])
+                    wait_for_exit(["unins000.exe"])
+                case "Adware.Multibundler.A":
+                    API.process_utils.kill_processes_by_name("AppWizard.exe")
+                    run_uninstaller(self.threats[file][1]["uninstall_path"])
+                    wait_for_exit(["unins000.exe"])
+                    # Deep Remove
+                    delete_registry_tree(winreg.HKEY_CURRENT_USER, r"SOFTWARE\AppWizard")
+
+
             API.logger.log("AdwareKiller", f"Removed {file}", API.LOGTYPE.SUCCESS)

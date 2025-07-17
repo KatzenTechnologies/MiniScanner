@@ -1,3 +1,4 @@
+import os
 
 def inverse(
         dictionary: dict
@@ -42,3 +43,9 @@ def merge_arrays(*args):
 
 def wide(data):
     return b''.join(bytes([b, 0x00]) for b in data)
+
+def dir_exists(direc):
+    return os.path.exists(direc) and os.path.isdir(direc)
+
+def file_exists(file):
+    return os.path.exists(file) and os.path.isfile(file)

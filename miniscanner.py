@@ -147,6 +147,7 @@ class API:
     logger = logger
     ConfigType = config_tools.ConfigurationTypes
     chosen_language = chosen_language # Нужно потому что в уи передается апи
+    loaded = []
 
     # Libraries
     installed_apps = installed_apps
@@ -159,6 +160,9 @@ class API:
     process_utils = process_utils
     firewall_tools = firewall_tools
     schedule_tools = schedule_tools
+
+    def is_loaded(self, name):
+        return name is self.loaded
 
     def get_config_object(self, plugin_object, name_of_file, type_of_config=ConfigType.JSON):
         if not os.path.exists(f"./config/{plugin_object.name}") or os.path.isfile(f"./config/{plugin_object.name}"):

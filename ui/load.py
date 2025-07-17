@@ -22,6 +22,7 @@ class LoaderThread(QThread):
             try:
                 self.log.emit(self.api.chosen_language.translate("load_loading_plugin", plugin_name=module.__name__))
                 instance = module.Main(self.api)
+                self.api.loaded.append(instance.name)
                 self.loaded_instances.append(instance)
                 time.sleep(0.3)
             except Exception as e:

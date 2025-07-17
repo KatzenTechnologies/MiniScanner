@@ -1,8 +1,11 @@
 import os
 import katzo
 
+
 class Main:
     name = "LNKCheck"
+    author = "Northkatz"
+    version = "1.0.0"
     def __init__(self, API):
         globals()["API"] = API
         API.logger.log("LNKCheck", "Loading up base..", API.LOGTYPE.INFO)
@@ -17,7 +20,9 @@ class Main:
         self.threats = []
 
     def scan(self):
-        arrays = katzo.merge_arrays(API.indexer.index_directory(API.paths.USERPROFILE+"\\AppData"),
+        arrays = katzo.merge_arrays(API.indexer.index_directory(API.paths.STARTMENU[0]),
+                                    API.indexer.index_directory(API.paths.STARTMENU[1]),
+                                    API.indexer.index_directory(API.paths.TASKBAR),
                                     API.indexer.index_directory(API.paths.DESKTOP)
                               )
 

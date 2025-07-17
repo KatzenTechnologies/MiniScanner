@@ -39,7 +39,8 @@ class VirusScanWindow(QDialog):
 
         self.api = api
         self.plugins = plugins
-        self.threat_rows = []  # [(filename, threat_name, plugin, delete_button)]
+        self.threat_rows = []
+        self.delete_threads = []
 
         self.setWindowTitle("MiniScanner | " + api.chosen_language.translate("threats_table_title"))
         self.resize(750, 480)
@@ -95,7 +96,20 @@ class VirusScanWindow(QDialog):
         delete_button.setMinimumHeight(22)
         ignore_button.setMinimumHeight(22)
 
+        btn_layout = QHBoxLayout()
+        btn_layout.addWidget(delete_button)
+        btn_layout.addWidget(ignore_button)
+        btn_layout.setContentsMargins(0, 0, 0, 0)
+        btn_widget = QWidget()
+        btn_widget.setLayout(btn_layout)
+        self.table.setCellWidget(row, 3, btn_widget)
+
+        self.threat_rows.append((filename, threat_name, plugin, delete_button, btn_widget))
+
         def delete_action():
+            delete_button.setEnabled(False)
+            ignore_button.setEnabled(False)
+
             if not self.auto_delete_checkbox.isChecked():
                 confirm = QMessageBox.question(
                     self,
@@ -104,6 +118,8 @@ class VirusScanWindow(QDialog):
                     QMessageBox.Yes | QMessageBox.No
                 )
                 if confirm != QMessageBox.Yes:
+                    delete_button.setEnabled(True)
+                    ignore_button.setEnabled(True)
                     return
 
             class DeleteThread(QThread):
@@ -114,46 +130,67 @@ class VirusScanWindow(QDialog):
                         plugin.delete(filename)
                         self_inner.finished_signal.emit(True, "")
                     except Exception as e:
-                        self_inner.finished_signal.emit(False, str(e))
+                        import traceback
+                        tb = traceback.format_exc()
+                        self_inner.finished_signal.emit(False, f"{e}\n{tb}")
 
             delete_thread = DeleteThread()
+            self.delete_threads.append(delete_thread)
+            delete_thread.finished.connect(delete_thread.deleteLater)
 
             def on_finished(success, error):
+                if not self.isVisible():
+                    return
+
                 if success:
-                    self.remove_row(delete_button)
+                    for row_idx in range(self.table.rowCount()):
+                        if self.table.cellWidget(row_idx, 3) is btn_widget:
+                            self.table.removeRow(row_idx)
+                            self.threat_rows = [
+                                r for r in self.threat_rows
+                                if r[4] is not btn_widget
+                            ]
+                            break
                 else:
-                    self.api.logger.log("MiniScanner",
-                                        self.api.chosen_language.translate("threats_table_error_of_remove", error=error),
-                                        self.api.LOGTYPE.ERROR)
+                    delete_button.setEnabled(True)
+                    ignore_button.setEnabled(True)
+                    self.api.logger.log(
+                        "MiniScanner",
+                        self.api.chosen_language.translate("threats_table_error_of_remove", error=error),
+                        self.api.LOGTYPE.ERROR
+                    )
                     QMessageBox.critical(
                         self,
                         self.api.chosen_language.translate("threats_table_error"),
                         self.api.chosen_language.translate("threats_table_error_of_remove", error=error)
                     )
-                delete_thread.deleteLater()
+
+                if delete_thread in self.delete_threads:
+                    self.delete_threads.remove(delete_thread)
 
             delete_thread.finished_signal.connect(on_finished)
             delete_thread.start()
 
         def ignore_action():
-            self.remove_row(delete_button)
+            delete_button.setEnabled(False)
+            ignore_button.setEnabled(False)
 
-        btn_layout = QHBoxLayout()
-        btn_layout.addWidget(delete_button)
-        btn_layout.addWidget(ignore_button)
-        btn_layout.setContentsMargins(0, 0, 0, 0)
-        btn_widget = QWidget()
-        btn_widget.setLayout(btn_layout)
-        self.table.setCellWidget(row, 3, btn_widget)
+            for row_idx in range(self.table.rowCount()):
+                if self.table.cellWidget(row_idx, 3) is btn_widget:
+                    self.table.removeRow(row_idx)
+                    self.threat_rows = [
+                        r for r in self.threat_rows
+                        if r[4] is not btn_widget
+                    ]
+                    break
 
         delete_button.clicked.connect(delete_action)
         ignore_button.clicked.connect(ignore_action)
 
-        self.threat_rows.append((filename, threat_name, plugin, delete_button))
-
-    def remove_row(self, delete_button: QPushButton):
-        for i, (_, _, _, btn) in enumerate(self.threat_rows):
-            if btn == delete_button:
-                self.table.removeRow(i)
-                self.threat_rows.pop(i)
-                break
+    def closeEvent(self, event):
+        if hasattr(self, 'worker') and self.worker.isRunning():
+            self.worker.wait()
+        for thread in self.delete_threads:
+            if thread.isRunning():
+                thread.wait()
+        super().closeEvent(event)
