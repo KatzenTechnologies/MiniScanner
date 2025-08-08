@@ -145,7 +145,7 @@ def kill_proxysdk():
 class Main:
     name = "AdwareKiller"
     author = "Northkatz"
-    version = '3.1.0'
+    version = '4.1'
 
     def __init__(self, API):
         globals()["API"] = API
@@ -270,7 +270,8 @@ class Main:
             check_autoruns(["uFiler.exe"]),
             check_registry_key_exists(winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\Classes\.ufile"),
             check_registry_key_exists(winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\Classes\uFiler"),
-            dir_exists(API.paths.PROGRAMDATA+'\\uFiler')
+            dir_exists(API.paths.PROGRAMDATA+'\\uFiler'),
+            dir_exists(API.paths.PROGRAMFILES86 + '\\uFiler'),
         ])
         if not "PUP.uBar.A" in self.threats_families and ufiler_flag:
             API.add_threat("uFiler (remnants)", "PUP.uBar.A", self)
@@ -473,6 +474,8 @@ class Main:
                                 API.logger.log("AdwareKiller", r"Error: " + traceback.format_exc(),
                                                API.LOGTYPE.ERROR)
                     remove(API.paths.PROGRAMDATA+'\\uFiler')
+                    # if exists cuz ufiler sometimes dont add itself to installed apps
+                    remove(API.paths.PROGRAMFILES86 + '\\uFiler')
                     remove(os.path.dirname(self.threats[file][1]["uninstall_path"]))
                 case "Adware.Udelka":
                     API.process_utils.kill_processes_by_name("ClientLauncher.exe")

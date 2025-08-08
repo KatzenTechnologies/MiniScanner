@@ -50,7 +50,7 @@ def sha512_file(filepath):
         return "Can't read hash!!!"
 class Main:
     name = "GarbageAway"
-    version = "1.0.0"
+    version = "1.1"
     author = "Northkatz & KdR"
 
     # About this module:
@@ -96,9 +96,11 @@ class Main:
         installed_apps = API.installed_apps.get_installed_apps_with_paths()
 
         for i in installed_apps:
-            if (not i["install_path"] == "N/A" and
+            if (not i["install_path"] == "N/A" and not i["install_path"] == "" and
                     not API.indexer.is_child(API.paths.PROGRAMFILES86, i["install_path"]) and
                     not API.indexer.is_child(API.paths.PROGRAMFILES, i["install_path"])):
+                API.logger.log(self.name, f"Scanning: {i['name']}",
+                               API.LOGTYPE.INFO)
                 files = API.indexer.index_directory(i["install_path"])
                 flag = False
                 for j in files:

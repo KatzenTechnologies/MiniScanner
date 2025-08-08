@@ -8,14 +8,13 @@ def kill_processes_by_name(name):
             except (psutil.NoSuchProcess, psutil.AccessDenied) as e:
                 pass
 
-def list_dlls_by_pid(pid):
+def list_memory_maps_by_pid(pid):
     try:
         proc = psutil.Process(pid)
         dlls = proc.memory_maps()
         result = []
         for dll in dlls:
-            if dll.path.lower().endswith('.dll'):
-                result.append(dll.path)
+            result.append(dll.path)
         return result
     except:
         pass

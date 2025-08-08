@@ -1,7 +1,10 @@
+import platform
+
 from PySide6.QtWidgets import QApplication, QDialog
 import ui.choose_language as choose_language
 from utils.localization import Localization
 import utils.configuration as config_tools
+import ui.scantype as scantype
 from datetime import datetime
 import ui.license as license
 import katzo.color as color
@@ -43,7 +46,7 @@ myconfig = config_tools.Configuration("./config/MiniScanner.json")
 globals()["logger"] = Logger()
 
 if myconfig.data == None:
-    myconfig.data = {"agreed_with_disclaimer": False, "last_language": "", "skip_lang": False}
+    myconfig.data = {"agreed_with_disclaimer": False, "last_language": "", "skip_lang": False, "scan_plugins": True}
 
 if myconfig["skip_lang"]:
     chosen_language = Localization(json.load(open(f"./translations/{myconfig["last_language"]}", "r", encoding='utf-8', errors='replace')))
@@ -97,12 +100,15 @@ def loader(path, paths):
                     logger.log("MiniScanner", chosen_language.translate("plugin_class_main_not_found", plugin_name=filename), LogType.ERROR)
             except Exception as e:
                 logger.log("MiniScanner", chosen_language.translate("plugin_loading_error", plugin_name=filename, error=e), LogType.ERROR)
-                
+
     return modules
 # GUI
 from ui.plugins_select import PluginSelectorDialog
 from ui.load import *
 from ui.threats_table import *
+
+#
+import utils.check_plugin as check_plugin
 def get_plugins(app):
     dlg = PluginSelectorDialog(chosen_language)
     
@@ -110,7 +116,8 @@ def get_plugins(app):
     for i in os.listdir("./plugins"):
         if os.path.isdir("./plugins/" + i): continue
         if i.split(".")[-1] == "py":
-            suspicious = False
+            suspicious = check_plugin.is_obfuscated(open("./plugins/" + i, "r").read()) if myconfig["scan_plugins"] else False
+
             logger.log("MiniScanner", chosen_language.translate("found_plugin_starting_check", plugin_name=i), LogType.INFO)
             dlg.add_plugin(i, suspicious=suspicious)
         elif i.split(".")[-1] == ".pyc":
@@ -129,16 +136,19 @@ app = QApplication.instance() or QApplication(sys.argv)
 modules = loader("./plugins", get_plugins(app))
 
 # API Toolkit
-import utils.installed_apps as installed_apps
 import utils.lnk_tools as lnk_tools
 import utils.paths as paths
-import utils.autorun_utils as autorun_utils
 import utils.indexer as indexer
 import utils.hosts_utils as hosts_utils
-import utils.services_utils as services_toolkit
 import utils.process_utils as process_utils
-import utils.firewall_tools as firewall_tools
-import utils.schedule_tools as schedule_tools
+import utils.quarantine as quarantine
+
+if platform.system() == "Windows":
+    import utils.firewall_tools as firewall_tools
+    import utils.schedule_tools as schedule_tools
+    import utils.services_utils as services_toolkit
+    import utils.installed_apps as installed_apps
+    import utils.autorun_utils as autorun_utils
 
 class API:
     version = "1.0"
@@ -148,27 +158,42 @@ class API:
     ConfigType = config_tools.ConfigurationTypes
     chosen_language = chosen_language # Нужно потому что в уи передается апи
     loaded = []
+    _preruns = []
+    _pl_configs = {}
 
     # Libraries
-    installed_apps = installed_apps
+
     lnk_tools = lnk_tools
     paths = paths.PATHS()
-    autorun_utils = autorun_utils
     indexer = indexer
     hosts_utils = hosts_utils
-    services_toolkit = services_toolkit
     process_utils = process_utils
-    firewall_tools = firewall_tools
-    schedule_tools = schedule_tools
+    if platform.system() == "Windows":
+        autorun_utils = autorun_utils
+        firewall_tools = firewall_tools
+        schedule_tools = schedule_tools
+        services_toolkit = services_toolkit
+        installed_apps = installed_apps
+    quarantine = quarantine.QuarantineSystem()
+
+    def register_config(self, config, localization, hidden_variables, name):
+        self._pl_configs.update({name if isinstance(name, str) else name.name: [config, localization, hidden_variables]})
 
     def is_loaded(self, name):
         return name is self.loaded
 
-    def get_config_object(self, plugin_object, name_of_file, type_of_config=ConfigType.JSON):
-        if not os.path.exists(f"./config/{plugin_object.name}") or os.path.isfile(f"./config/{plugin_object.name}"):
-            os.mkdir(f"./config/{plugin_object.name}")
+    def get_config_object(self, name_of_file, type_of_config=ConfigType.JSON, folder="config"):
+        return config_tools.Configuration(f"./{folder}/{name_of_file}", type_of_config=type_of_config)
 
-        return config_tools.Configuration(f"./config/{plugin_object.name}/{name_of_file}", type_of_config=type_of_config)
+    def get_localization_object(self, data):
+        return Localization(data)
+
+    def get_indexer_generator(self):
+        return indexer.FileIndexer(include_dirs=self.scancore.include_dirs,
+                                   include_files=self.scancore.include_files,
+                                   exclude_dirs=self.scancore.exclude_dirs,
+                                   exclude_files=self.scancore.exclude_files,
+                                   )
 
     # CAPIs System
     def get_api(self, name):
@@ -180,9 +205,27 @@ class API:
         else:
             logger.log("API System", chosen_language.translate("custom_api_already_registrated"), LogType.WARN)
 
+    # For hooks, patching, etc...
+    def register_prerun(self, function):
+        self._preruns.append(function)
+
+    def prerun(self):
+        for i in self._preruns:
+            i()
+
 if modules == []:
     logger.log("MiniScanner", chosen_language.translate("havent_get_any_plugins"), LogType.CRITICAL)
     exit()
+
+def get_excludes():
+    config_path = os.path.join("config", "indexer_excludes.json")
+    os.makedirs(os.path.dirname(config_path), exist_ok=True)
+    data = config_tools.Configuration(config_path, api.ConfigType.JSON)
+    if data.data is None:
+        data.data = {"paths": []}
+    elif "paths" not in data.data:
+        data.data["paths"] = []
+    return data
 
 api = API()
 
@@ -194,8 +237,69 @@ if loaded_plugins == []:
     logger.log("MiniScanner", chosen_language.translate("havent_loaded_any_plugins"), LogType.CRITICAL)
     exit()
 
+api.register_config(myconfig, chosen_language, ["agreed_with_disclaimer", "last_language"], "MiniScanner")
+
+scannertype = scantype.ScannerGUI(api, get_excludes)
+scannertype.show()
+app.exec()
+
+if scannertype.scan_type == None:
+    logger.log("MiniScanner", chosen_language.translate("type_not_chosen"), LogType.CRITICAL)
+    exit()
+
+class ScanCore:
+    version = "1.0.0"
+    def __init__(self):
+        self.exclude_files = []
+        self.exclude_paths = []
+        self.include_paths = []
+        self.include_files = []
+        self.scan_type = None
+
+scancore_obj = ScanCore()
+scancore_obj.scan_type = scannertype.scan_type
+if scannertype.scan_type != "custom":
+    scancore_db = json.load(open("./db/scancore.json", 'r'))
+    scancore_db = scancore_db[platform.system()]
+    scancore_obj.exclude_files = scancore_db[scannertype.scan_type]["exclude_files"]
+    for i, j in enumerate(scancore_obj.exclude_files):
+        scancore_obj.exclude_files[i] = indexer.replace_env_vars(j)
+    scancore_obj.include_dirs = scancore_db[scannertype.scan_type]["include_dirs"]
+    for i, j in enumerate(scancore_obj.include_dirs):
+        scancore_obj.include_dirs[i] = indexer.replace_env_vars(j)
+    scancore_obj.include_files = scancore_db[scannertype.scan_type]["include_files"]
+    for i, j in enumerate(scancore_obj.include_files):
+        scancore_obj.include_files[i] = indexer.replace_env_vars(j)
+    scancore_obj.exclude_dirs = scancore_db[scannertype.scan_type]["exclude_dirs"]
+    for i, j in enumerate(scancore_obj.exclude_dirs):
+        scancore_obj.exclude_dirs[i] = indexer.replace_env_vars(j)
+else:
+    dirs = []
+    files = []
+    for i in scannertype.scan_paths:
+        if os.path.exists(i):
+            if os.path.isfile(i):
+                files.append(i)
+            else:
+                dirs.append(i)
+    dirs_e = []
+    files_e = []
+    for i in scannertype.scan_tab.exclusions_config.data["paths"]:
+        if os.path.exists(i):
+            if os.path.isfile(i):
+                files_e.append(i)
+            else:
+                dirs_e.append(i)
+
+    scancore_obj.exclude_files = files_e
+    scancore_obj.include_dirs = dirs
+    scancore_obj.include_files = files
+    scancore_obj.exclude_dirs = dirs_e
+api.scancore = scancore_obj
+
 threat_gui = VirusScanWindow(loaded_plugins, api)
-api.add_threat = threat_gui.add_threat
+# api.add_threat = threat_gui.add_threat
+
 
 
 threat_gui.exec()

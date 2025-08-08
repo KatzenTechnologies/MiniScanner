@@ -6,7 +6,7 @@ class Localization:
         self.translations = data.get("translation", {})
 
     def translate(self, key: str, **kwargs) -> str:
-        template_str = self.translations.get(key, f"[{key}]")
+        template_str = self.translations.get(key, f"{key}")
         try:
             template = string.Template(template_str)
             return template.safe_substitute(**kwargs)

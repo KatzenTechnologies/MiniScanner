@@ -1,3 +1,5 @@
+import traceback
+
 from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QLabel, QProgressBar,
     QPushButton, QDialogButtonBox
@@ -21,11 +23,13 @@ class LoaderThread(QThread):
         for i, module in enumerate(self.modules, 1):
             try:
                 self.log.emit(self.api.chosen_language.translate("load_loading_plugin", plugin_name=module.__name__))
+                self.api.logger.log("PluginLoader", self.api.chosen_language.translate("load_loading_plugin", plugin_name=module.__name__), self.api.LOGTYPE.INFO)
                 instance = module.Main(self.api)
                 self.api.loaded.append(instance.name)
                 self.loaded_instances.append(instance)
                 time.sleep(0.3)
             except Exception as e:
+                self.api.logger.log("PluginLoader", f"Error while loading {module.__name__}: {traceback.format_exc()}", self.api.LOGTYPE.ERROR)
                 self.log.emit(self.api.chosen_language.translate("load_loading_error", error=e))
             self.progress.emit(int(i / total * 100))
         self.done.emit()

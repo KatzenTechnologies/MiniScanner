@@ -1,0 +1,78 @@
+{
+  "Windows": {
+    "quick": {
+      "exclude_files": [],
+      "include_dirs": [
+        "${ProgramFiles(x86)}",
+        "${ProgramFiles}",
+        "${programdata}",
+        "${userprofile}",
+        "${SystemRoot}"
+      ],
+      "include_files": [],
+      "exclude_dirs": [
+        "${SystemRoot}\\WinSxS",
+        "${SystemRoot}\\System32\\Config",
+        "${SystemRoot}\\System32\\DriverStore\\FileRepository"
+      ]
+    },
+    "full": {
+      "exclude_files": [],
+      "include_dirs": [
+        "${SystemDrive}"
+      ],
+      "include_files": [],
+      "exclude_dirs": [
+        "${SystemRoot}\\WinSxS",
+        "${SystemRoot}\\System32\\Config",
+        "${SystemDrive}\\Recovery",
+        "${SystemDrive}\\$Recycle.Bin",
+        "${SystemDrive}\\System Volume Information",
+        "${SystemRoot}\\System32\\DriverStore\\FileRepository"
+      ]
+    }
+  },
+  "Linux": {
+    "quick": {
+      "exclude_files": [],
+      "include_dirs": [
+        "/home",
+        "/etc",
+        "/usr",
+        "/var",
+        "/opt"
+      ],
+      "include_files": [],
+      "exclude_dirs": [
+        "/usr/share/doc",
+        "/usr/share/man",
+        "/var/cache",
+        "/var/log"
+      ]
+    },
+    "full": {
+      "exclude_files": [],
+      "include_dirs": [
+        "/"
+      ],
+      "include_files": [],
+      "exclude_dirs": [
+        "/proc",
+        "/sys",
+        "/dev",
+        "/run",
+        "/tmp",
+        "/var/cache",
+        "/var/log",
+        "/usr/share/doc",
+        "/usr/share/man",
+        "/snap",
+        "/mnt",
+        "/media"
+      ]
+    }
+  }
+
+
+
+}

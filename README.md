@@ -6,10 +6,12 @@ Plugins can also implement their own **APIs** for system interaction.
 📄 [Read in Russian](README_ru.md)
 
 List of plugins installed by default:
- - LNKCheck (v1)
+ - LNKCheck (v2)
 > Checks .lnk/.url files for Adware
- - AdwareKiller 
-> Deep-Removes Adware from your system  
+ - AdwareKiller (v4.1)
+> Deep-Removes Adware from your system
+ - GarbageAway (v1.1)
+> Removes garbage soft which downloads Adware
 ---
 
 

@@ -1,0 +1,40 @@
+[
+  {
+    "name": "Adware.Kavandar",
+    "sig": [
+      "dearkv.ru",
+      "klaun.ch"
+    ]
+  },
+  {
+    "name": "PUP.Yandex",
+    "sig": [
+      "yandex.ru/games?utm_source=distrib",
+      "yandex.ru/search/?clid="
+    ]
+  },
+  {
+    "name": "Adware.Terrar",
+    "sig": [
+      "terra.im",
+      "yagoaway.ru",
+      "gogone.ru"
+    ]
+  },
+  {
+    "name": "PUP.Udelka.b",
+    "sig": [
+      "unidownloader.com"
+    ]
+  },
+  {
+    "name": "Adware.Dower",
+    "sig": [
+      "gtalauncher.ru",
+      "vetgetted.ru",
+      "aborig.ru"
+    ]
+  }
+
+
+]

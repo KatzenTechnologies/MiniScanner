@@ -5,10 +5,12 @@
 
 
 Список плагинов, установленных по умолчанию:
- - LNKCheck (v1)
+ - LNKCheck (v2)
 > Проверяет файлы .lnk/.url на Adware
- - AdwareKiller 
+ - AdwareKiller (v4.1)
 > Глубокое удаление Adware с компьютера
+ - GarbageAway (v1.1)
+> Удаляет мусорные программы, которые заносят Adware в компьютер
 ---
 
 # ⚠ **DISCLAIMER**
