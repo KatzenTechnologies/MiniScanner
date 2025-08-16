@@ -45,29 +45,38 @@ class FileIndexer:
     def __init__(self, include_dirs=None, include_files=None, exclude_dirs=None, exclude_files=None):
         self.include_dirs = [os.path.abspath(d) for d in (include_dirs or [])]
         self.include_files = set(os.path.abspath(f) for f in (include_files or []))
-
         self.exclude_dirs = set(os.path.abspath(d) for d in (exclude_dirs or []))
         self.exclude_files = set(os.path.abspath(f) for f in (exclude_files or []))
 
     def scan(self):
         for file_path in self.include_files:
-            if os.path.isfile(file_path) and file_path not in self.exclude_files:
-                yield file_path
+            try:
+                if os.path.isfile(file_path) and file_path not in self.exclude_files:
+                    yield file_path
+            except OSError:
+                continue
 
         for root_dir in self.include_dirs:
-            for root, dirs, files in os.walk(root_dir, topdown=True):
-                root = os.path.abspath(root)
-                if root in self.exclude_dirs:
-                    dirs[:] = []
-                    continue
-                dirs[:] = [
-                    d for d in dirs
-                    if os.path.abspath(os.path.join(root, d)) not in self.exclude_dirs
-                ]
-                for filename in files:
-                    filepath = os.path.abspath(os.path.join(root, filename))
-                    if filepath not in self.exclude_files:
-                        yield filepath
+            try:
+                for root, dirs, files in os.walk(root_dir, topdown=True, onerror=lambda e: None):
+                    root = os.path.abspath(root)
+                    if root in self.exclude_dirs:
+                        dirs[:] = []
+                        continue
+                    dirs[:] = [
+                        d for d in dirs
+                        if os.path.abspath(os.path.join(root, d)) not in self.exclude_dirs
+                    ]
+                    for filename in files:
+                        filepath = os.path.abspath(os.path.join(root, filename))
+                        if filepath not in self.exclude_files:
+                            try:
+                                yield filepath
+                            except OSError:
+                                continue
+            except PermissionError:
+                continue
+
 
 
 # Indexer

@@ -54,7 +54,7 @@ class QuarantineSystem:
         with open(path, "rb") as f:
             file_content = f.read()
 
-        source = getattr(source, "name", "unknown")
+        source = getattr(source, "name", "unknown") if not isinstance(source, str) else source
 
         __key = os.urandom(16)
         __cipher = AES.new(__key, AES.MODE_CTR)

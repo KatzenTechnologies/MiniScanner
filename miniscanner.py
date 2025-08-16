@@ -15,6 +15,11 @@ import json
 import sys
 import os
 
+full_version = "3.1_beta1"
+api_version  = "3.1.0_beta1"
+base_version = "3.1.0_beta1"
+
+
 class LogType:
     INFO = [color.BLUE, "INFO"]
     WARN = [color.YELLOW, "WARN"]
@@ -23,7 +28,7 @@ class LogType:
     SUCCESS = [color.GREEN, "SUCCESS"]
 
 print("Tyyrve! Te prougram tehdenoe bue Ingebeplandae Litte fyy Kehidajajes da KatzenTech.")
-print("MiniScanner v1.0")
+print(f"MiniScanner v{full_version}")
 
 if not os.path.exists("./logs") or os.path.isfile("./logs"):
     os.mkdir("./logs")
@@ -151,7 +156,10 @@ if platform.system() == "Windows":
     import utils.autorun_utils as autorun_utils
 
 class API:
-    version = "1.0"
+    api_version  = api_version
+    base_version = base_version
+    full_version = full_version
+
     LOGTYPE = LogType()
     APIs = {}
     logger = logger
@@ -160,6 +168,7 @@ class API:
     loaded = []
     _preruns = []
     _pl_configs = {}
+    _custom_tabs = []
 
     # Libraries
 
@@ -178,6 +187,9 @@ class API:
 
     def register_config(self, config, localization, hidden_variables, name):
         self._pl_configs.update({name if isinstance(name, str) else name.name: [config, localization, hidden_variables]})
+
+    def add_custom_tab(self, tab, name):
+        self._custom_tabs.append([tab, name])
 
     def is_loaded(self, name):
         return name is self.loaded
@@ -267,12 +279,23 @@ if scannertype.scan_type != "custom":
     scancore_obj.include_dirs = scancore_db[scannertype.scan_type]["include_dirs"]
     for i, j in enumerate(scancore_obj.include_dirs):
         scancore_obj.include_dirs[i] = indexer.replace_env_vars(j)
+    print(scancore_db[scannertype.scan_type]["include_dirs"])
     scancore_obj.include_files = scancore_db[scannertype.scan_type]["include_files"]
     for i, j in enumerate(scancore_obj.include_files):
         scancore_obj.include_files[i] = indexer.replace_env_vars(j)
     scancore_obj.exclude_dirs = scancore_db[scannertype.scan_type]["exclude_dirs"]
     for i, j in enumerate(scancore_obj.exclude_dirs):
         scancore_obj.exclude_dirs[i] = indexer.replace_env_vars(j)
+    dirs_e = []
+    files_e = []
+    for i in scannertype.scan_tab.exclusions_config.data["paths"]:
+        if os.path.exists(i):
+            if os.path.isfile(i):
+                files_e.append(i)
+            else:
+                dirs_e.append(i)
+    scancore_obj.exclude_files += files_e
+    scancore_obj.exclude_dirs += dirs_e
 else:
     dirs = []
     files = []
@@ -296,6 +319,9 @@ else:
     scancore_obj.include_files = files
     scancore_obj.exclude_dirs = dirs_e
 api.scancore = scancore_obj
+
+
+
 
 threat_gui = VirusScanWindow(loaded_plugins, api)
 # api.add_threat = threat_gui.add_threat
