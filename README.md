@@ -14,7 +14,21 @@ List of plugins installed by default:
 > Removes garbage soft which downloads Adware
 ---
 
+# How to Download?  
 
+If you need a **stable version**, go to the [Releases](https://github.com/KatzenTechnologies/MiniScanner/releases) tab and download the latest release.  
+
+---
+
+## Beta  
+
+The **beta version** is available in the main branch of this repository.  
+
+⚠️ **Warning:** Beta builds are **VERY UNSTABLE** and **NOT RECOMMENDED for use on real systems**!  
+
+> Beta builds may contain unfinished or partially implemented features  
+> (e.g., untranslated strings, incomplete functionality, etc.).  
+> **You can contribute to MiniScanner by helping to implement or improve them!**  
 # ⚠ **DISCLAIMER**
 
 > This software and all of its components, including plugins and tools, are provided **"as is"** without any warranties, either express or implied, including, but not limited to, warranties of merchantability, fitness for a particular purpose, or non-infringement.
