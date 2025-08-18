@@ -1,4 +1,14 @@
-import platform
+import utils.check_requirements as check_requirements
+
+need = check_requirements.check_requirements(check_requirements.parse_requirements_file())
+
+if need:
+    import tkinter.messagebox as msg
+    choice = msg.askyesno("MiniScanner", "Some requirements is not installed, do you want install them?\nНекоторые зависимости не установлены, желаете установить их?")
+    if choice:
+        check_requirements.install_requirements(need)
+        msg.showinfo("MiniScanner","You need to restart Miniscanner to apply changes\nЧтобы применить изменения перезапустите Miniscanner")
+    exit()
 
 from PySide6.QtWidgets import QApplication, QDialog
 import ui.choose_language as choose_language
@@ -10,15 +20,16 @@ import ui.license as license
 import katzo.color as color
 import katzo.tui as tui
 import importlib
+import platform
 import logging
 import json
 import sys
 import os
 
-full_version = "3.1_beta1"
-api_version  = "3.1.0_beta1"
-base_version = "3.1.0_beta1"
-
+full_version = "3.1"
+api_version  = "3.1.0"
+base_version = "3.1.0"
+revision = "beta2"
 
 class LogType:
     INFO = [color.BLUE, "INFO"]
@@ -28,8 +39,7 @@ class LogType:
     SUCCESS = [color.GREEN, "SUCCESS"]
 
 print("Tyyrve! Te prougram tehdenoe bue Ingebeplandae Litte fyy Kehidajajes da KatzenTech.")
-print(f"MiniScanner v{full_version}")
-
+print(f"MiniScanner v{full_version} ({revision})")
 if not os.path.exists("./logs") or os.path.isfile("./logs"):
     os.mkdir("./logs")
 
@@ -49,6 +59,8 @@ class Logger:
 myconfig = config_tools.Configuration("./config/MiniScanner.json")
 
 globals()["logger"] = Logger()
+
+logger.log("MiniScanner", f"Running v{base_version} API:{api_version} Base:{base_version} Rev:{revision}", LogType.INFO)
 
 if myconfig.data == None:
     myconfig.data = {"agreed_with_disclaimer": False, "last_language": "", "skip_lang": False, "scan_plugins": True}
@@ -159,6 +171,7 @@ class API:
     api_version  = api_version
     base_version = base_version
     full_version = full_version
+    revision     = revision
 
     LOGTYPE = LogType()
     APIs = {}
@@ -259,6 +272,13 @@ if scannertype.scan_type == None:
     logger.log("MiniScanner", chosen_language.translate("type_not_chosen"), LogType.CRITICAL)
     exit()
 
+memoryscanner = process_utils.MemoryScanner()
+
+if scannertype.scan_tab.scan_memory_checkbox.checkState() == Qt.Checked:
+    memoryscanner.enabled = True
+
+api.memoryscanner = memoryscanner
+
 class ScanCore:
     version = "1.0.0"
     def __init__(self):
@@ -279,7 +299,6 @@ if scannertype.scan_type != "custom":
     scancore_obj.include_dirs = scancore_db[scannertype.scan_type]["include_dirs"]
     for i, j in enumerate(scancore_obj.include_dirs):
         scancore_obj.include_dirs[i] = indexer.replace_env_vars(j)
-    print(scancore_db[scannertype.scan_type]["include_dirs"])
     scancore_obj.include_files = scancore_db[scannertype.scan_type]["include_files"]
     for i, j in enumerate(scancore_obj.include_files):
         scancore_obj.include_files[i] = indexer.replace_env_vars(j)
@@ -319,9 +338,6 @@ else:
     scancore_obj.include_files = files
     scancore_obj.exclude_dirs = dirs_e
 api.scancore = scancore_obj
-
-
-
 
 threat_gui = VirusScanWindow(loaded_plugins, api)
 # api.add_threat = threat_gui.add_threat

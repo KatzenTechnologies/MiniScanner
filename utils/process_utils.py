@@ -12,10 +12,8 @@ def list_memory_maps_by_pid(pid):
     try:
         proc = psutil.Process(pid)
         dlls = proc.memory_maps()
-        result = []
         for dll in dlls:
-            result.append(dll.path)
-        return result
+            yield dll
     except:
         pass
 
@@ -37,3 +35,12 @@ def find_process_paths_by_name(name: str):
         except (psutil.NoSuchProcess, psutil.AccessDenied):
             continue
     return list(filter(None, matches))
+
+class MemoryScanner:
+    def __init__(self):
+        self.enabled = False
+    def scan(self):
+        if self.enabled:
+            for i in psutil.process_iter():
+                if i.pid != 0:
+                    yield [i, i.exe(), list_memory_maps_by_pid(i.pid)]

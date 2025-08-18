@@ -1,9 +1,9 @@
+📄 Read in other languages:[🇷🇺 Русский](README_ru.md)
 # **MiniScanner**  
+
 *An antivirus scanner based on a plugin system.*  
 Plugins interact with the system and the core of the program through a dedicated **API**.  
 Plugins can also implement their own **APIs** for system interaction.
-
-📄 [Read in Russian](README_ru.md)
 
 List of plugins installed by default:
  - LNKCheck (v2)
@@ -15,12 +15,14 @@ List of plugins installed by default:
 ---
 
 # How to Download?  
+> Recommended Python version: 3.12+
 
 If you need a **stable version**, go to the [Releases](https://github.com/KatzenTechnologies/MiniScanner/releases) tab and download the latest release.  
 
 ---
 
-## Beta  
+## Beta 
+Telegram channel with MiniScanner updates: [\*click\*](https://t.me/miniscanner)
 
 The **beta version** is available in the main branch of this repository.  
 
