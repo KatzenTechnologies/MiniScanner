@@ -120,7 +120,8 @@ class CallsChecker(ast.NodeVisitor):
 
 def is_obfuscated(file):
     variablechecker = VariableChecker()
-    code = file#file.read()
+    code = file.read()
+    file.close()
     parsed = ast.parse(code)
 
     deproxysub = DeproxySub()
