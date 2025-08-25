@@ -1,6 +1,9 @@
 {
   "language_name": "Русский",
   "translation": {
+    "requirements_not_satisfied": "Некоторые зависимости плагинов не установлены, желаете установить?",
+    "requirements_removing_plugins": "Выгружаю плагины с неудовлетворёнными зависимостями...",
+    "requirements_plugins_not_loaded": "Ни один плагин не был загружен из-за отсутствия зависимостей!",
     "disclaimer_not_accepted": "Соглашение не было принято, завершаю работу...",
     "plugin_class_main_not_found": "В плагине $plugin_name отсутствует класс Main!",
     "plugin_loading_error": "Не удалось импортировать $plugin_name! Ошибка: $error",

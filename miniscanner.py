@@ -10,7 +10,7 @@ if need:
         msg.showinfo("MiniScanner","You need to restart Miniscanner to apply changes\nЧтобы применить изменения перезапустите Miniscanner")
     exit()
 
-from PySide6.QtWidgets import QApplication, QDialog
+from PySide6.QtWidgets import QApplication, QDialog, QMessageBox
 import ui.choose_language as choose_language
 from utils.localization import Localization
 import utils.configuration as config_tools
@@ -29,7 +29,7 @@ import os
 full_version = "3.1"
 api_version  = "3.1.0"
 base_version = "3.1.0"
-revision = "beta2"
+revision = "beta3"
 
 class LogType:
     INFO = [color.BLUE, "INFO"]
@@ -185,6 +185,7 @@ class API:
 
     # Libraries
 
+    requirements = check_requirements.RequirementTool()
     lnk_tools = lnk_tools
     paths = paths.PATHS()
     indexer = indexer
@@ -260,6 +261,31 @@ if dlg.exec() == QDialog.Accepted:
 
 if loaded_plugins == []:
     logger.log("MiniScanner", chosen_language.translate("havent_loaded_any_plugins"), LogType.CRITICAL)
+    exit()
+
+reqs_flag = False
+if not api.requirements.not_installed():
+    reply = QMessageBox.question(
+        None, "MiniScanner", chosen_language.translate("requirements_not_satisfied"),
+        QMessageBox.Yes | QMessageBox.No
+    )
+
+    if reply == QMessageBox.Yes:
+        # more code for security reasons
+        api.requirements.enabled = True
+        api.requirements.install()
+        delattr(api.requirements, "enabled")
+        delattr(api.requirements, "install")
+    else:
+        logger.log("MiniScanner", chosen_language.translate("requirements_removing_plugins"), LogType.INFO)
+
+        reqs_flag = True
+        # remove plugins, which have missing reqs
+        for i in api.requirements.missing.keys():
+            loaded_plugins.remove(i)
+
+if loaded_plugins == [] and reqs_flag:
+    logger.log("MiniScanner", chosen_language.translate("requirements_plugins_not_loaded"), LogType.CRITICAL)
     exit()
 
 api.register_config(myconfig, chosen_language, ["agreed_with_disclaimer", "last_language"], "MiniScanner")
