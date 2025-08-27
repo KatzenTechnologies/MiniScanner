@@ -16,7 +16,7 @@ class Main:
                     self.base.data[i]["sig"][n] = self.base.data[i]["sig"][n].encode("utf-16le")
 
         else:
-            API.logger.log("LNKCheck", "There's no base!")
+            API.logger.log("LNKCheck", "There's no base!", API.LOGTYPE.INFO)
             raise Exception("Theres no lnklist.json")
         self.threats = {}
 

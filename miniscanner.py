@@ -206,7 +206,7 @@ class API:
         self._custom_tabs.append([tab, name])
 
     def is_loaded(self, name):
-        return name is self.loaded
+        return name in self.loaded
 
     def get_config_object(self, name_of_file, type_of_config=ConfigType.JSON, folder="config"):
         return config_tools.Configuration(f"./{folder}/{name_of_file}", type_of_config=type_of_config)
