@@ -4,6 +4,10 @@ from PySide6.QtWidgets import (
     QAbstractItemView, QTabWidget, QDialog, QGroupBox, QMenu, QLineEdit,
     QHeaderView, QInputDialog, QCheckBox, QTreeWidget, QTreeWidgetItem, QListWidget, QComboBox
 )
+from PySide6.QtWidgets import (
+    QWidget, QVBoxLayout, QTableWidget, QTableWidgetItem, QLineEdit,
+    QCheckBox, QComboBox, QSpinBox, QPushButton, QFileDialog, QMessageBox
+)
 from PySide6.QtCore import Qt, QMimeData
 from PySide6.QtGui import QDragEnterEvent, QDropEvent, QAction
 import os
@@ -18,6 +22,7 @@ class PluginConfigTab(QWidget):
         self.current_localization = None
         self.current_hidden_vars = []
         self.value_widgets = {}
+        self.schemes = {}
         main_layout = QHBoxLayout()
         self.tr = api.chosen_language.translate
         plugins_panel = QGroupBox(self.tr("plugins"))
@@ -61,6 +66,7 @@ class PluginConfigTab(QWidget):
             self.current_config = None
             self.current_localization = None
             self.current_hidden_vars = []
+            self.schemes = {}
             self.params_table.setRowCount(0)
             return
         name = selected_items[0].text()
@@ -69,10 +75,12 @@ class PluginConfigTab(QWidget):
             self.current_config = config_data[0]
             self.current_localization = config_data[1]
             self.current_hidden_vars = config_data[2]
+            self.schemes = config_data[3]
         else:
             self.current_config = None
             self.current_localization = None
             self.current_hidden_vars = []
+            self.schemes = {}
         self.update_params_table()
 
     def update_params_table(self):
@@ -87,6 +95,7 @@ class PluginConfigTab(QWidget):
             params.append((key, value))
         self.params_table.setRowCount(len(params))
         for i, (key, value) in enumerate(params):
+            scheme = self.schemes.get(key, {})
             if self.current_localization:
                 display_key = self.current_localization.translate(key)
                 desc_key = f"{key}_desc"
@@ -105,74 +114,122 @@ class PluginConfigTab(QWidget):
                 type_name = self.tr("float_type")
             elif isinstance(value, str):
                 type_name = self.tr("string_type")
-            elif isinstance(value, list):
-                type_name = self.tr("list_type")
-            elif isinstance(value, dict):
-                type_name = self.tr("dict_type")
             else:
                 type_name = self.tr("object_type")
             type_item = QTableWidgetItem(type_name)
             self.params_table.setItem(i, 1, type_item)
             desc_item = QTableWidgetItem(description)
             self.params_table.setItem(i, 3, desc_item)
+            widget = None
             if isinstance(value, bool):
                 chk = QCheckBox()
                 chk.setChecked(value)
                 chk.stateChanged.connect(lambda state, k=key: self.toggle_boolean(k, state))
-                self.params_table.setCellWidget(i, 2, chk)
-            elif isinstance(value, (int, float)):
+                widget = chk
+            elif isinstance(value, (int, float, str)) and scheme:
+                if scheme.get("type") == "combobox":
+                    cb = QComboBox()
+                    for v in scheme.get("values", []):
+                        cb.addItem(str(v))
+                    if str(value) in [str(v) for v in scheme.get("values", [])]:
+                        cb.setCurrentText(str(value))
+                    cb.currentTextChanged.connect(lambda val, k=key: self.value_changed(k, val))
+                    widget = cb
+                elif isinstance(value, (int, float)) and "values" in scheme:
+                    sb = QSpinBox()
+                    vals = scheme["values"]
+                    if vals:
+                        sb.setMinimum(min(vals))
+                        sb.setMaximum(max(vals))
+                    sb.setValue(int(value))
+                    sb.valueChanged.connect(lambda val, k=key: self.value_changed(k, val))
+                    widget = sb
+            if not widget:
                 edit = QLineEdit(str(value))
                 edit.setObjectName(f"edit_{key}")
-                self.params_table.setCellWidget(i, 2, edit)
+                widget = edit
                 self.value_widgets[key] = edit
-            elif isinstance(value, str):
-                edit = QLineEdit(value)
-                edit.setObjectName(f"edit_{key}")
-                self.params_table.setCellWidget(i, 2, edit)
-                self.value_widgets[key] = edit
-            else:
-                if isinstance(value, (list, dict)):
-                    try:
-                        value_str = json.dumps(value, indent=2, ensure_ascii=False)
-                    except:
-                        value_str = str(value)
-                else:
-                    value_str = str(value)
-                value_item = QTableWidgetItem(value_str)
-                value_item.setFlags(value_item.flags() & ~Qt.ItemIsEditable)
-                self.params_table.setItem(i, 2, value_item)
+            self.params_table.setCellWidget(i, 2, widget)
+            self.value_widgets[key] = widget
         self.params_table.resizeRowsToContents()
         self.params_table.resizeColumnToContents(0)
         self.params_table.resizeColumnToContents(1)
         self.params_table.resizeColumnToContents(2)
+        self.update_dependencies()
+
+    def update_dependencies(self):
+        for key, scheme in self.schemes.items():
+            widget = self.value_widgets.get(key)
+            if not widget:
+                continue
+            enabled = True
+            if "enabled_if" in scheme:
+                dep = scheme["enabled_if"]
+                dep_val = self.get_value(dep)
+                enabled = bool(dep_val)
+            if "disabled_if" in scheme:
+                dep = scheme["disabled_if"]
+                dep_val = self.get_value(dep)
+                if dep_val:
+                    enabled = False
+            widget.setEnabled(enabled)
+
+    def get_value(self, key):
+        if key not in self.value_widgets:
+            return self.current_config.data.get(key)
+        widget = self.value_widgets[key]
+        if isinstance(widget, QCheckBox):
+            return widget.isChecked()
+        elif isinstance(widget, QLineEdit):
+            return widget.text()
+        elif isinstance(widget, QComboBox):
+            return widget.currentText()
+        elif isinstance(widget, QSpinBox):
+            return widget.value()
+        return self.current_config.data.get(key)
+
+    def value_changed(self, key, value):
+        if not self.current_config:
+            return
+        self.current_config.data[key] = value
+        self.update_dependencies()
 
     def toggle_boolean(self, key, state):
         if not self.current_config or self.current_config.data is None:
             return
         self.current_config.data[key] = state == Qt.Checked
         self.current_config.save()
+        self.update_dependencies()
 
     def save_config(self):
         if not self.current_config:
             return
         for key, widget in self.value_widgets.items():
             if key in self.current_config.data:
-                value = widget.text()
-                original_value = self.current_config.data[key]
-                if isinstance(original_value, int):
-                    try:
-                        self.current_config.data[key] = int(value)
-                    except ValueError:
-                        pass
-                elif isinstance(original_value, float):
-                    try:
-                        self.current_config.data[key] = float(value)
-                    except ValueError:
-                        pass
-                elif isinstance(original_value, str):
-                    self.current_config.data[key] = value
+                if isinstance(widget, QLineEdit):
+                    val = widget.text()
+                    orig = self.current_config.data[key]
+                    if isinstance(orig, int):
+                        try:
+                            self.current_config.data[key] = int(val)
+                        except ValueError:
+                            pass
+                    elif isinstance(orig, float):
+                        try:
+                            self.current_config.data[key] = float(val)
+                        except ValueError:
+                            pass
+                    else:
+                        self.current_config.data[key] = val
+                elif isinstance(widget, QCheckBox):
+                    self.current_config.data[key] = widget.isChecked()
+                elif isinstance(widget, QComboBox):
+                    self.current_config.data[key] = widget.currentText()
+                elif isinstance(widget, QSpinBox):
+                    self.current_config.data[key] = widget.value()
         self.current_config.save()
         QMessageBox.information(self, "✅", self.api.chosen_language.translate("config_saved"))
+
 
 
 class ScanTab(QWidget):

@@ -1,8 +1,9 @@
 import string
 
 class Localization:
-    def __init__(self, data):
+    def __init__(self, data, filename):
         self.language_name = data.get("language_name", "Unknown")
+        self.file = filename
         self.translations = data.get("translation", {})
 
     def translate(self, key: str, **kwargs) -> str:

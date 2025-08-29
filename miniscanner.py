@@ -29,7 +29,7 @@ import os
 full_version = "3.1"
 api_version  = "3.1.0"
 base_version = "3.1.0"
-revision = "beta3"
+revision = "beta4"
 
 class LogType:
     INFO = [color.BLUE, "INFO"]
@@ -66,13 +66,13 @@ if myconfig.data == None:
     myconfig.data = {"agreed_with_disclaimer": False, "last_language": "", "skip_lang": False, "scan_plugins": True}
 
 if myconfig["skip_lang"]:
-    chosen_language = Localization(json.load(open(f"./translations/{myconfig["last_language"]}", "r", encoding='utf-8', errors='replace')))
+    chosen_language = Localization(json.load(open(f"./translations/{myconfig["last_language"]}", "r", encoding='utf-8', errors='replace')), myconfig["last_language"])
 else:
     localizations_map = {}
     localization_data_for_ui = []
 
     for i in os.listdir("./translations"):
-        obj = Localization(json.load(open(f"./translations/{i}", "r", encoding='utf-8', errors='replace')))
+        obj = Localization(json.load(open(f"./translations/{i}", "r", encoding='utf-8', errors='replace')), myconfig["last_language"])
         localizations_map.update({i: obj})
         localization_data_for_ui.append([i, obj.language_name])
 
@@ -133,7 +133,7 @@ def get_plugins(app):
     for i in os.listdir("./plugins"):
         if os.path.isdir("./plugins/" + i): continue
         if i.split(".")[-1] == "py":
-            suspicious = check_plugin.is_obfuscated(open("./plugins/" + i, "r").read()) if myconfig["scan_plugins"] else False
+            suspicious = check_plugin.is_obfuscated(open("./plugins/" + i, "r")) if myconfig["scan_plugins"] else False
 
             logger.log("MiniScanner", chosen_language.translate("found_plugin_starting_check", plugin_name=i), LogType.INFO)
             dlg.add_plugin(i, suspicious=suspicious)
@@ -199,8 +199,8 @@ class API:
         installed_apps = installed_apps
     quarantine = quarantine.QuarantineSystem()
 
-    def register_config(self, config, localization, hidden_variables, name):
-        self._pl_configs.update({name if isinstance(name, str) else name.name: [config, localization, hidden_variables]})
+    def register_config(self, config, localization, hidden_variables, scheme, name):
+        self._pl_configs.update({name if isinstance(name, str) else name.name: [config, localization, hidden_variables, scheme]})
 
     def add_custom_tab(self, tab, name):
         self._custom_tabs.append([tab, name])
@@ -211,8 +211,8 @@ class API:
     def get_config_object(self, name_of_file, type_of_config=ConfigType.JSON, folder="config"):
         return config_tools.Configuration(f"./{folder}/{name_of_file}", type_of_config=type_of_config)
 
-    def get_localization_object(self, data):
-        return Localization(data)
+    def get_localization_object(self, data, filename):
+        return Localization(data, filename)
 
     def get_indexer_generator(self):
         return indexer.FileIndexer(include_dirs=self.scancore.include_dirs,
@@ -288,7 +288,7 @@ if loaded_plugins == [] and reqs_flag:
     logger.log("MiniScanner", chosen_language.translate("requirements_plugins_not_loaded"), LogType.CRITICAL)
     exit()
 
-api.register_config(myconfig, chosen_language, ["agreed_with_disclaimer", "last_language"], "MiniScanner")
+api.register_config(myconfig, chosen_language, ["agreed_with_disclaimer", "last_language"], {}, "MiniScanner")
 
 scannertype = scantype.ScannerGUI(api, get_excludes)
 scannertype.show()
