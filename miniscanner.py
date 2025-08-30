@@ -1,3 +1,16 @@
+import os
+
+try:
+    from packaging import version, requirements
+    del version, requirements
+except:
+    import tkinter.messagebox as msg
+    choice = msg.askyesno("MiniScanner", "Version of pip/packaging is old, because of it some of miniscanner's components can not work.\nВерсия pip/packaging устарела ввиду этого некоторые компоненты могут не работать, желаете обновить?")
+    if choice:
+        import pip._internal
+        pip._internal.main(["install", "--upgrade", "pip", "packaging"])
+
+
 import utils.check_requirements as check_requirements
 
 need = check_requirements.check_requirements(check_requirements.parse_requirements_file())
@@ -29,7 +42,7 @@ import os
 full_version = "3.1"
 api_version  = "3.1.0"
 base_version = "3.1.0"
-revision = "beta4"
+revision = "beta5"
 
 class LogType:
     INFO = [color.BLUE, "INFO"]
