@@ -42,5 +42,5 @@ class MemoryScanner:
     def scan(self):
         if self.enabled:
             for i in psutil.process_iter():
-                if i.pid != 0:
+                if i.pid != 0 and i.exe() not in ["Registry", "MemCompression", ""]:
                     yield [i, i.exe(), list_memory_maps_by_pid(i.pid)]

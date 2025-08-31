@@ -1,0 +1,11 @@
+{
+  "language_name": "English",
+  "translation": {
+    "scan_memory": "Scan Memory",
+    "scan_memory_desc": "Whether the plugin should scan the computer’s memory",
+    "scan_memory_extended": "Extended Memory Scan (WIP)",
+    "scan_memory_extended_desc": "May cause issues!!",
+    "yara": "Use Yara",
+    "yara_desc": "Use Yara during scanning"
+  }
+}

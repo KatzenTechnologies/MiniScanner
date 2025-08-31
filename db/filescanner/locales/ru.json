@@ -1,0 +1,11 @@
+{
+  "language_name": "Русский",
+  "translation": {
+    "scan_memory": "Сканировать Память",
+    "scan_memory_desc": "Будет ли плагин сканировать память компьютера",
+    "scan_memory_extended": "Расширенная проверка памяти (WIP)",
+    "scan_memory_extended_desc": "Может вызывать проблемы!!",
+    "yara": "Использовать Yara",
+    "yara_desc": "Использовать Yara при сканировании"
+  }
+}
