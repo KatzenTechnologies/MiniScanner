@@ -38,10 +38,10 @@ class Cursor:
 
     def _cur(self, vis):
         self.ci = _CursorInfo()
-        handle = windll.kernel32.GetStdHandle(-11)
-        windll.kernel32.GetConsoleCursorInfo(handle, byref(self.ci))
+        handle = ctypes.windll.kernel32.GetStdHandle(-11)
+        ctypes.windll.kernel32.GetConsoleCursorInfo(handle, ctypes.byref(self.ci))
         self.ci.visible = vis
-        windll.kernel32.SetConsoleCursorInfo(handle, byref(self.ci))
+        ctypes.windll.kernel32.SetConsoleCursorInfo(handle, ctypes.byref(self.ci))
 
 
 def clear():
@@ -107,7 +107,7 @@ def gradient_text_less(text, fade):
     return faded
     
 def gradient_text(text, fade_colors):
-    system("")
+    os.system("")
     faded = ""
     color_count = len(fade_colors)
     text_len = len(text)
