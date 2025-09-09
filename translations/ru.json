@@ -118,6 +118,7 @@
     "about_version": "Версия",
     "about_author": "Автор",
     "about_thanks": "Благодарности",
+    "about_used_components": "Использованы компоненты, созданные:",
     "scan_memory": "Сканировать память",
     "tab_about": "О программе",
     "apply_all": "Применить ко всем",

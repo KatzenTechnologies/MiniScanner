@@ -618,7 +618,13 @@ class AboutTab(QWidget):
         <ul>
             <li>horsicq</li>
             <li>h0rrif</li>
+            <li>KdR</li>
         </ul>
+        <h3>{self.tr("about_used_components")}</h3>
+        <ul>
+            <li>Darktrace, Virustotal</li>
+        </ul>
+        <h2>R.I.P. Motya (?? Aug 2010 - 5 Sep 2025). Ingebeplandi oloe maasehdee sine!</h2>
         """
         label = QLabel(html)
         label.setAlignment(Qt.AlignTop)
